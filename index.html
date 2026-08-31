@@ -1,0 +1,3064 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>نظام إدارة عمليات وتوزيع العمال - مخزن سعودي ماركت</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#FF6A1A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Saudi Warehouse">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800;900&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyA83blW4Gbfclml0E3lGzNXcJEo7xRjaxc",
+    authDomain: "saudi-warehouse.firebaseapp.com",
+    projectId: "saudi-warehouse",
+    storageBucket: "saudi-warehouse.firebasestorage.app",
+    messagingSenderId: "81524464011",
+    appId: "1:81524464011:web:11a07fc97b5df86525378e"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  try { db.enablePersistence({ synchronizeTabs: true }).catch(()=>{}); } catch(e) {}
+</script>
+<style>
+:root {
+  --bg: #F1F4F7;
+  --bg-grad: radial-gradient(1200px 400px at 50% -10%, #FFE4CE 0%, #F1F4F7 55%);
+  --surface: #FFFFFF;
+  --surface-2: #FBFCFD;
+  --border: #E3E9EE;
+  --text: #16222D;
+  --text-muted: #5C7080;
+  --text-faint: #93A3AF;
+  --accent: #FF6A1A;
+  --accent-ink: #B8460A;
+  --accent-soft: #FFE7D6;
+  --steel: #2F6690;
+  --steel-soft: #E4EEF5;
+  --success: #178A55;
+  --success-soft: #DFF5EA;
+  --warning: #B8790A;
+  --warning-soft: #FBEDD3;
+  --danger: #D6383E;
+  --danger-soft: #FBE1E2;
+  --info: #2F6690;
+  --info-soft: #E4EEF5;
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --shadow-sm: 0 1px 2px rgba(20,30,40,.05);
+  --header-h: 64px;
+  --nav-h: 66px;
+}
+html[data-theme="dark"] {
+  --bg: #0D1317;
+  --bg-grad: radial-gradient(1200px 400px at 50% -10%, #241609 0%, #0D1317 55%);
+  --surface: #161E24;
+  --surface-2: #131A1F;
+  --border: #25313A;
+  --text: #EBF1F4;
+  --text-muted: #8FA3AE;
+  --text-faint: #5E7280;
+  --accent: #FF7A2E;
+  --accent-ink: #FFB27E;
+  --accent-soft: rgba(255,122,46,.16);
+  --steel: #6FA8D0;
+  --steel-soft: rgba(111,168,208,.14);
+  --success: #37C687;
+  --success-soft: rgba(55,198,135,.14);
+  --warning: #F0B429;
+  --warning-soft: rgba(240,180,41,.14);
+  --danger: #F2565C;
+  --danger-soft: rgba(242,86,92,.14);
+  --info: #6FA8D0;
+  --info-soft: rgba(111,168,208,.14);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { margin:0; padding:0; background: var(--bg-grad); color: var(--text); font-family: 'Tajawal', sans-serif; min-height: 100vh; }
+h1,h2,h3,h4, .num { font-family: 'Cairo', sans-serif; }
+
+#app { max-width: 520px; margin: 0 auto; min-height: 100vh; padding-top: var(--header-h); padding-bottom: calc(var(--nav-h) + 20px); }
+
+/* Header */
+.app-header {
+  position: fixed; top: 0; right: 50%; transform: translateX(50%);
+  width: 100%; max-width: 520px; height: var(--header-h); z-index: 40;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; padding: 0 16px;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-mark { width: 38px; height: 38px; border-radius: 11px; background: linear-gradient(155deg, var(--accent), #FF8A4C); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; overflow: hidden; }
+.brand-mark img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.brand-text b { font-size: 14.5px; display: block; line-height: 1.1; }
+.brand-text span { font-size: 11px; color: var(--text-muted); }
+.header-actions { display: flex; gap: 8px; }
+.icon-btn { width: 36px; height: 36px; border-radius: 11px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+/* Bottom Nav */
+.bottom-nav {
+  position: fixed; bottom: 0; right: 50%; transform: translateX(50%);
+  width: 100%; max-width: 520px; height: var(--nav-h);
+  background: var(--surface); border-top: 1px solid var(--border);
+  display: flex; z-index: 40; padding-bottom: env(safe-area-inset-bottom);
+}
+.nav-item { flex: 1; border: none; background: none; color: var(--text-faint); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; cursor: pointer; }
+.nav-item.active { color: var(--accent); }
+.nav-fab-btn { width: 50px; height: 50px; border-radius: 16px; border: none; background: linear-gradient(155deg, var(--accent), #FF8A4C); color: #fff; margin-top: -20px; box-shadow: 0 8px 18px rgba(255,106,26,.4); cursor: pointer; }
+
+/* Utilities & Cards */
+.px { padding: 0 16px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm); }
+.btn { border: none; border-radius: var(--radius-md); font-weight: 700; font-size: 14px; padding: 12px 16px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; width: 100%; transition: .15s; }
+.btn-primary { background: linear-gradient(155deg, var(--accent), #FF8449); color: #fff; }
+.btn-secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+.btn-sm { padding: 8px 12px; font-size: 12.5px; width: auto; border-radius: 8px; }
+.btn-danger { background: var(--danger-soft); color: var(--danger); border: 1px solid var(--danger); }
+
+/* Inputs */
+.input, select.input, textarea.input { width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 11px 13px; font-size: 13.5px; color: var(--text); outline: none; font-family: inherit; margin-top: 4px; }
+
+/* Modal / Bottom Sheet */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: flex-end; justify-content: center; opacity: 0; pointer-events: none; transition: .2s; }
+.modal-overlay.active { opacity: 1; pointer-events: auto; }
+.modal-sheet { background: var(--surface); width: 100%; max-width: 520px; border-radius: 24px 24px 0 0; padding: 20px; transform: translateY(100%); transition: .25s ease-out; max-height: 85vh; overflow-y: auto; }
+.modal-overlay.active .modal-sheet { transform: translateY(0); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+
+/* Toast */
+.toast { position: fixed; bottom: calc(var(--nav-h) + 16px); right: 50%; transform: translateX(50%); background: #16222D; color: #fff; padding: 10px 18px; border-radius: 100px; font-size: 12.5px; z-index: 90; opacity: 0; transition: .2s; pointer-events: none; }
+.toast.show { opacity: 1; }
+
+.badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
+.badge.success { background: var(--success-soft); color: var(--success); }
+.badge.warning { background: var(--warning-soft); color: var(--warning); }
+.badge.danger { background: var(--danger-soft); color: var(--danger); }
+.badge.info { background: var(--info-soft); color: var(--info); }
+</style>
+<style>
+.photo-preview{width:100%;max-height:260px;object-fit:cover;border-radius:14px;border:1px solid var(--border);margin-top:8px;background:var(--surface-2)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.muted{color:var(--text-muted);font-size:12px}.row{display:flex;align-items:center;justify-content:space-between;gap:8px}.check-row{display:flex;align-items:center;gap:8px;padding:9px;border:1px solid var(--border);border-radius:10px;margin:5px 0}.check-row input{width:18px;height:18px}.sync-dot{font-size:11px}.report-img{width:100%;border-radius:12px;border:1px solid var(--border);margin-top:8px}
+
+.leave-week-title{font-weight:700;margin:12px 0 8px;color:var(--text,#fff)}
+.leave-calendar-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.leave-day-card{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:74px;border:1px solid #2a3944;border-radius:14px;background:#141d24;padding:8px;cursor:pointer;transition:.15s}
+.leave-day-card.selected{background:#d8f5e4;border-color:#19a35b;box-shadow:0 0 0 2px rgba(25,163,91,.12)}
+.leave-day-name{font-size:17px;font-weight:800}.leave-day-date{font-size:14px;color:#9aa6ad;margin-top:4px}.leave-day-card.selected .leave-day-date{color:#168a4d;font-weight:700}.leave-day-card input{position:absolute;top:8px;left:8px;width:20px;height:20px}
+@media(min-width:700px){.leave-calendar-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+
+<header class="app-header" id="appHeader" style="display:none;">
+  <div class="brand">
+    <div class="brand-mark"><img src="./icon-192.png" alt="Saudi Market"></div>
+    <div class="brand-text">
+      <b>Saudi Market</b>
+      <span id="headerRole">Warehouse Operations</span>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="icon-btn" id="themeBtn" aria-label="الوضع">🌙</button>
+    <button class="icon-btn" id="logoutBtn" title="تسجيل الخروج">🚪</button>
+  </div>
+</header>
+
+<div id="app"></div>
+
+<nav class="bottom-nav" id="bottomNav" style="display:none;"></nav>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-sheet" id="modalSheet"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= CONSTANTS & DEFAULTS ================= */
+const DEPARTMENTS = [
+  { key: 'picking', ar: '🛒 التحضير', en: 'Picking' },
+  { key: 'shipping', ar: '🚚 الشحن', en: 'Shipping / Loading' },
+  { key: 'scanning', ar: '🔍 المراجعة', en: 'Scanning / Audit' },
+  { key: 'floor', ar: '📦 الأرضية / الأقفاص', en: 'Floor / Cages' }
+];
+
+const ATTENDANCE_OPTIONS = [
+  { key: 'present', label: '🟢 حاضر', tag: 'حاضر' },
+  { key: 'absent', label: '🔴 غياب بدون إذن', tag: 'غياب بدون إذن' },
+  { key: 'absent_perm', label: '🟡 غياب بإذن', tag: 'غياب بإذن' },
+  { key: 'half_day', label: '🌓 نصف يوم', tag: 'نصف يوم' },
+  { key: 'perm_2h', label: '⏱️ إذن ساعتين', tag: 'إذن 2 س' },
+  { key: 'sick', label: '🏥 مرضي', tag: 'مرضي' },
+  { key: 'penalty', label: '⚠️ جزا', tag: 'جزا' }
+];
+
+const INITIAL_SHIFTS = [
+  { id: 'shift_m', name: 'الشفت الصباحي', startTime: '08:00', endTime: '17:00', icon: '☀️', supervisorId: 'usr_m' },
+  { id: 'shift_e', name: 'الشفت المسائي', startTime: '17:00', endTime: '02:00', icon: '🌙', supervisorId: 'usr_e' }
+];
+
+/* دول باسوردات مبدئية بس (bootstrap) لأول تشغيل فاضي - بيتم عمل hash ليها تلقائيًا فور تشغيل التطبيق (migratePlaintextPasswords)، فمبتفضلش نص صريح مخزن. غيّر الباسوردات دي فورًا بعد أول تسجيل دخول. */
+const INITIAL_USERS = [
+  { id: 'usr_admin', username: 'admin', password: '123', name: 'عمرو فوزي (المشرف الرئيسي)', role: 'admin', shiftId: null, active: true },
+  { id: 'usr_m', username: 'sup_m', password: '123', name: 'فرج محمد', role: 'supervisor', shiftId: 'shift_m', active: true },
+  { id: 'usr_e', username: 'sup_e', password: '123', name: 'محمود علي', role: 'supervisor', shiftId: 'shift_e', active: true }
+];
+
+const INITIAL_WORKERS = [
+  { id: 'W-001', name: 'أحمد سعيد عبد العزيز', code: 'W-001', shiftId: 'shift_m', deptKey: 'picking', active: true },
+  { id: 'W-002', name: 'حمدي رجب يونس', code: 'W-002', shiftId: 'shift_m', deptKey: 'picking', active: true },
+  { id: 'W-003', name: 'مصطفى سعيد محمد', code: 'W-003', shiftId: 'shift_m', deptKey: 'shipping', active: true },
+  { id: 'W-004', name: 'محمد عبد المجيد محمد', code: 'W-004', shiftId: 'shift_m', deptKey: 'scanning', active: true },
+  { id: 'W-005', name: 'السيد ياسر محمد', code: 'W-005', shiftId: 'shift_m', deptKey: 'floor', active: true },
+  { id: 'W-006', name: 'أحمد بدر عبد الرحيم', code: 'W-006', shiftId: 'shift_e', deptKey: 'picking', active: true },
+  { id: 'W-007', name: 'ضياء محمد قاسم', code: 'W-007', shiftId: 'shift_e', deptKey: 'shipping', active: true },
+  { id: 'W-008', name: 'طه فتحي فرغلي', code: 'W-008', shiftId: 'shift_e', deptKey: 'scanning', active: true },
+  { id: 'W-009', name: 'محمد فوزي علي', code: 'W-009', shiftId: 'shift_e', deptKey: 'floor', active: true },
+  { id: 'W-010', name: 'عمرو كامل عبد الصمد', code: 'W-010', shiftId: 'shift_e', deptKey: 'picking', active: true }
+];
+
+function getDefaultState() {
+  return {
+    theme: 'light',
+    loggedInUserId: null,
+    activeScreen: 'dashboard',
+    workers: INITIAL_WORKERS,
+    shifts: INITIAL_SHIFTS,
+    users: INITIAL_USERS,
+    reports: [],
+    telegram: { botToken: '', chatId: '', autoSend: true, bots: [], activeBotId: '' },
+    activeWizard: null
+  };
+}
+
+let state = getDefaultState();
+
+/* ================= STORAGE (Firestore real-time sync) ================= */
+/* حقول صغيرة وأساسية بتتخزن في مستند واحد "core/data" */
+const CORE_FIELDS = ['workers','users','shifts','telegram','leaveBatchId','pendingLeaves','seasonalAssignments'];
+/* سجلات متنامية (تقارير، مهام مخزن، إجازات، تغييرات شفت) - كل واحدة في Collection منفصلة، مستند لكل عنصر */
+const GROWING_COLLECTIONS = ['reports','warehouseTasks','leaves','shiftChanges'];
+
+let _fbReady = false;
+let _fbListenersAttached = false;
+let _syncCache = { reports:{}, warehouseTasks:{}, leaves:{}, shiftChanges:{} };
+
+function localSnapshot() {
+  try { localStorage.setItem('saudi_wh_state_v3', JSON.stringify(state)); } catch (e) {}
+}
+
+async function syncGrowingCollection(name, arr) {
+  const cache = _syncCache[name];
+  const list = Array.isArray(arr) ? arr : [];
+  const currentIds = new Set(list.map(x => x && x.id).filter(Boolean));
+  const deletedIds = Object.keys(cache).filter(id => !currentIds.has(id));
+  for (const id of deletedIds) {
+    try { await db.collection(name).doc(id).delete(); } catch (e) {}
+    delete cache[id];
+  }
+  for (const item of list) {
+    if (!item || !item.id) continue;
+    const json = JSON.stringify(item);
+    if (cache[item.id] === json) continue;
+    try {
+      await db.collection(name).doc(String(item.id)).set(item);
+      cache[item.id] = json;
+    } catch (e) { console.error('Firestore sync error:', name, item.id, e); }
+  }
+}
+
+async function saveState() {
+  ensureV2State();
+  localSnapshot();
+  if (!_fbReady) return;
+  try {
+    const core = {};
+    CORE_FIELDS.forEach(k => { core[k] = state[k]; });
+    core._updatedAt = Date.now();
+    await db.collection('core').doc('data').set(core);
+    for (const name of GROWING_COLLECTIONS) {
+      await syncGrowingCollection(name, state[name]);
+    }
+  } catch (e) { console.error('Firestore save error:', e); }
+}
+
+async function loadState() {
+  try {
+    const data = localStorage.getItem('saudi_wh_state_v3');
+    if (data) {
+      const parsed = JSON.parse(data);
+      state = Object.assign(getDefaultState(), parsed);
+    }
+  } catch (e) {}
+}
+
+function attachRealtimeSync() {
+  if (_fbListenersAttached) return;
+  _fbListenersAttached = true;
+
+  db.collection('core').doc('data').onSnapshot(async snap => {
+    if (!snap.exists) {
+      _fbReady = true;
+      await saveState();
+      return;
+    }
+    const data = snap.data();
+    CORE_FIELDS.forEach(k => { if (data[k] !== undefined) state[k] = data[k]; });
+    ensureV2State();
+    await migratePlaintextPasswords();
+    _fbReady = true;
+    renderApp();
+  }, err => console.error('core snapshot error', err));
+
+  GROWING_COLLECTIONS.forEach(name => {
+    db.collection(name).onSnapshot(snap => {
+      const arr = [];
+      snap.forEach(doc => arr.push(doc.data()));
+      arr.sort((a, b) => String(b.createdAt || b.at || '').localeCompare(String(a.createdAt || a.at || '')));
+      state[name] = arr;
+      const cache = _syncCache[name];
+      Object.keys(cache).forEach(k => delete cache[k]);
+      arr.forEach(item => { if (item && item.id) cache[item.id] = JSON.stringify(item); });
+      renderApp();
+    }, err => console.error(name + ' snapshot error', err));
+  });
+}
+
+let saveTimer;
+function queueSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveState, 300);
+}
+
+// Re-sync automatically when the browser comes back online.
+window.addEventListener('online', () => {
+  if (_fbReady) saveState().catch(e => console.error('Firestore online resync error:', e));
+});
+
+/* ================= HELPERS ================= */
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function openModal(html) {
+  const sheet = document.getElementById('modalSheet');
+  sheet.innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('active');
+}
+
+function dateTodayLabel() {
+  const d = new Date();
+  return d.toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function getLoggedInUser() {
+  return state.users.find(u => u.id === state.loggedInUserId) || null;
+}
+
+function getWorkerDisplayName(worker, allWorkers) {
+  const parts = worker.name.trim().split(/\s+/);
+  let shortName = parts.length >= 2 ? `${parts[0]} ${parts[1]}` : parts[0];
+  
+  const hasDuplicate = allWorkers.some(other => 
+    other.id !== worker.id && 
+    other.shiftId === worker.shiftId && 
+    other.name.trim().split(/\s+/).slice(0, 2).join(' ') === shortName
+  );
+
+  if (hasDuplicate) {
+    if (parts.length >= 3) {
+      return `${parts[0]} ${parts[1]} ${parts[2]}`;
+    } else {
+      return `${shortName} (${worker.code})`;
+    }
+  }
+
+  return shortName;
+}
+
+/* ================= RENDER SYSTEM ================= */
+function renderApp() {
+  document.documentElement.setAttribute('data-theme', state.theme);
+  document.getElementById('themeBtn').textContent = state.theme === 'dark' ? '☀️' : '🌙';
+
+  const user = getLoggedInUser();
+
+  if (!user) {
+    document.getElementById('appHeader').style.display = 'none';
+    document.getElementById('bottomNav').style.display = 'none';
+    document.getElementById('app').innerHTML = renderLoginScreen();
+    attachEvents();
+    return;
+  }
+
+  document.getElementById('appHeader').style.display = 'flex';
+  document.getElementById('bottomNav').style.display = 'flex';
+  document.getElementById('headerRole').textContent = `${user.name} (${user.role === 'admin' ? 'مشرف رئيسي' : 'مسؤول شفت'})`;
+
+  renderNav();
+
+  const app = document.getElementById('app');
+  switch (state.activeScreen) {
+    case 'dashboard': app.innerHTML = renderDashboard(); break;
+    case 'workers': app.innerHTML = renderWorkersScreen(); break;
+    case 'shifts': app.innerHTML = renderShiftsScreen(); break;
+    case 'users': app.innerHTML = renderUsersScreen(); break;
+    case 'wizard': app.innerHTML = renderWizardScreen(); break;
+    case 'reports': app.innerHTML = renderReportsScreen(); break;
+    case 'settings': app.innerHTML = renderSettingsScreen(); break;
+    default: app.innerHTML = renderDashboard();
+  }
+
+  attachEvents();
+}
+
+function renderNav() {
+  const user = getLoggedInUser();
+  const isAdmin = user && user.role === 'admin';
+  const nav = document.getElementById('bottomNav');
+  
+  let html = `
+    <button class="nav-item ${state.activeScreen==='dashboard'?'active':''}" onclick="setScreen('dashboard')">
+      <span>🏠</span><span>الرئيسية</span>
+    </button>
+  `;
+
+  if (isAdmin) {
+    html += `
+      <button class="nav-item ${state.activeScreen==='workers'?'active':''}" onclick="setScreen('workers')">
+        <span>👷</span><span>العمال</span>
+      </button>
+      <button class="nav-item ${state.activeScreen==='users'?'active':''}" onclick="setScreen('users')">
+        <span>🔑</span><span>المسؤولين</span>
+      </button>
+    `;
+  }
+
+  html += `
+    <div style="flex:1; display:flex; justify-content:center;">
+      <button class="nav-fab-btn" onclick="startNewReport()">➕</button>
+    </div>
+    <button class="nav-item ${state.activeScreen==='reports'?'active':''}" onclick="setScreen('reports')">
+      <span>📊</span><span>التقارير</span>
+    </button>
+  `;
+
+  if (isAdmin) {
+    html += `
+      <button class="nav-item ${state.activeScreen==='settings'?'active':''}" onclick="setScreen('settings')">
+        <span>⚙️</span><span>الإعدادات</span>
+      </button>
+    `;
+  }
+
+  nav.innerHTML = html;
+}
+
+function setScreen(scr) {
+  state.activeScreen = scr;
+  renderApp();
+  queueSave();
+}
+
+/* ================= LOGIN SCREEN ================= */
+function renderLoginScreen() {
+  return `
+    <div class="px" style="padding-top:40px;">
+      <div style="text-align:center; margin-bottom:24px;">
+        <div class="brand-mark" style="width:60px; height:60px; margin:0 auto 12px; font-size:26px;"><img src="./icon-192.png" alt="Saudi Market"></div>
+        <h2 style="margin:0; font-size:22px;">مخزن سعودي ماركت</h2>
+        <span style="font-size:13px; color:var(--text-muted);">تسجيل الدخول لإدارة العمليات</span>
+      </div>
+
+      <div class="card">
+        <form onsubmit="handleLogin(event)">
+          <label style="font-size:12px; font-weight:700;">اسم المستخدم (Username)</label>
+          <input class="input" id="loginUser" required placeholder="مثال: admin أو sup_m">
+
+          <label style="font-size:12px; font-weight:700; margin-top:12px; display:block;">كلمة السر (Password)</label>
+          <input class="input" type="password" id="loginPass" required placeholder="••••••••">
+
+          <button class="btn btn-primary" style="margin-top:20px;">تسجيل الدخول 🔑</button>
+        </form>
+      </div>
+    </div>
+  `;
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const uInput = document.getElementById('loginUser').value.trim();
+  const pInput = document.getElementById('loginPass').value.trim();
+
+  const candidate = state.users.find(u => u.username === uInput && u.active);
+  const user = (candidate && await verifyUserPassword(candidate, pInput)) ? candidate : null;
+
+  if (user) {
+    state.loggedInUserId = user.id;
+    state.activeScreen = 'dashboard';
+    queueSave();
+    toast(`أهلاً بك: ${user.name}`);
+    renderApp();
+  } else {
+    toast('🔴 اسم المستخدم أو كلمة السر غير صحيحة');
+  }
+}
+
+function handleLogout() {
+  state.loggedInUserId = null;
+  queueSave();
+  toast('تم تسجيل الخروج بنجاح');
+  renderApp();
+}
+
+/* ================= DASHBOARD ================= */
+function renderDashboard() {
+  const user = getLoggedInUser();
+  const isAdmin = user.role === 'admin';
+  const activeWorkers = state.workers.filter(w => w.active);
+
+  if (isAdmin) {
+    const morningWorkers = activeWorkers.filter(w => w.shiftId === 'shift_m');
+    const eveningWorkers = activeWorkers.filter(w => w.shiftId === 'shift_e');
+
+    return `
+      <div class="px" style="padding-top:12px;">
+        <div class="card" style="background: linear-gradient(135deg, #16222D, #2F6690); color: #fff;">
+          <div style="font-size:12px; color: #FFB27E; font-weight:700;">🏢 عمليات المخزن - لوحة المشرف الرئيسي</div>
+          <h2 style="margin:4px 0 0; font-size:20px;">${dateTodayLabel()}</h2>
+          <div style="margin-top:12px; font-size:13px; opacity:.9;">إجمالي العمال النشطين: <b>${activeWorkers.length}</b> عامل</div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+          <div class="card" style="margin-bottom:0;">
+            <div style="font-weight:800; font-size:15px;">☀️ الصباحي</div>
+            <div style="font-size:11px; color:var(--text-muted);">${state.shifts[0].startTime} - ${state.shifts[0].endTime}</div>
+            <div style="font-size:22px; font-weight:900; margin-top:6px; color:var(--accent);">${morningWorkers.length} <span style="font-size:12px; font-weight:normal;">عامل</span></div>
+          </div>
+          <div class="card" style="margin-bottom:0;">
+            <div style="font-weight:800; font-size:15px;">🌙 المسائي</div>
+            <div style="font-size:11px; color:var(--text-muted);">${state.shifts[1].startTime} - ${state.shifts[1].endTime}</div>
+            <div style="font-size:22px; font-weight:900; margin-top:6px; color:var(--steel);">${eveningWorkers.length} <span style="font-size:12px; font-weight:normal;">عامل</span></div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="startNewReport()">📋 بدء تقرير تشغيلي جديد</button>
+      </div>
+    `;
+  } else {
+    const myShift = state.shifts.find(s => s.id === user.shiftId) || state.shifts[0];
+    const myWorkers = activeWorkers.filter(w => w.shiftId === myShift.id);
+
+    return `
+      <div class="px" style="padding-top:12px;">
+        <div class="card" style="background: linear-gradient(135deg, #FF6A1A, #FF8449); color: #fff;">
+          <div style="font-size:12px; font-weight:700;">${myShift.icon} ${myShift.name}</div>
+          <h2 style="margin:4px 0 0; font-size:20px;">${myShift.startTime} → ${myShift.endTime}</h2>
+          <div style="margin-top:8px; font-size:13px;">المسؤول الحالي: <b>${user.name}</b></div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-size:12px; color:var(--text-muted);">عمال الشفت التابعين لك:</div>
+              <div style="font-size:24px; font-weight:900;">${myWorkers.length} عمال</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="startNewReport()">بدء التقرير</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+}
+
+/* ================= USERS MANAGEMENT ================= */
+function renderUsersScreen() {
+  return `
+    <div class="px" style="padding-top:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 style="margin:0;">🔑 إدارة حسابات المسؤولين</h3>
+        <button class="btn btn-primary btn-sm" onclick="openAddUserModal()">➕ إضافة مسؤول جديد</button>
+      </div>
+
+      <div>
+        ${state.users.map(u => {
+          const shift = state.shifts.find(s => s.id === u.shiftId);
+          return `
+            <div class="card">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                  <b style="font-size:15px; display:block;">${u.name}</b>
+                  <span style="font-size:12px; color:var(--accent); font-weight:bold;">اسم المستخدم: ${u.username}</span>
+                </div>
+                <span class="badge ${u.role==='admin'?'info':'warning'}">${u.role==='admin'?'مشرف رئيسي':'مسؤول شفت'}</span>
+              </div>
+
+              <div style="margin-top:8px; font-size:12.5px; color:var(--text-muted);">
+                ${u.role==='supervisor'?`الشفت المكلّف به: <b>${shift?shift.name:'غير محدد'}</b>`:'صلاحيات إدارة كاملة'}
+              </div>
+
+              <div style="margin-top:12px; display:flex; gap:6px;">
+                <button class="btn btn-secondary btn-sm" style="flex:1;" onclick="openEditUserModal('${u.id}')">✏️ تعديل / كلمة السر</button>
+                ${u.id !== state.loggedInUserId ? `<button class="btn ${u.active?'btn-danger':'btn-primary'} btn-sm" onclick="toggleUserActive('${u.id}')">${u.active?'تعطيل':'تفعيل'}</button>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function openAddUserModal() {
+  openModal(`
+    <div class="modal-header">
+      <h3 style="margin:0;">إضافة مسؤول / عضو جديد</h3>
+      <button class="icon-btn" onclick="closeModal()">✕</button>
+    </div>
+    <form onsubmit="handleAddUser(event)">
+      <label style="font-size:12px;">الاسم الكامل / العضوية</label>
+      <input class="input" id="uName" required placeholder="مثال: فرج محمد">
+
+      <label style="font-size:12px; margin-top:8px; display:block;">اسم المستخدم (Username)</label>
+      <input class="input" id="uUsername" required placeholder="مثال: faraj_m">
+
+      <label style="font-size:12px; margin-top:8px; display:block;">كلمة السر (Password)</label>
+      <input class="input" type="text" id="uPassword" required minlength="4" placeholder="ضع كلمة سر (٤ خانات على الأقل)">
+
+      <label style="font-size:12px; margin-top:8px; display:block;">الدور / الصلاحية</label>
+      <select class="input" id="uRole" onchange="document.getElementById('uShiftGroup').style.display = this.value==='supervisor'?'block':'none';">
+        <option value="supervisor">مسؤول شفت / عضو إدارة شفت</option>
+        <option value="admin">مشرف رئيسي (Admin)</option>
+      </select>
+
+      <div id="uShiftGroup" style="margin-top:8px;">
+        <label style="font-size:12px; display:block;">الشفت المعين له</label>
+        <select class="input" id="uShift">
+          ${state.shifts.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+        </select>
+      </div>
+
+      <button class="btn btn-primary" style="margin-top:16px;">إنشاء الحساب</button>
+    </form>
+  `);
+}
+
+async function handleAddUser(e) {
+  e.preventDefault();
+  const name = document.getElementById('uName').value;
+  const username = document.getElementById('uUsername').value.trim();
+  const password = document.getElementById('uPassword').value.trim();
+  const role = document.getElementById('uRole').value;
+  const shiftId = role === 'supervisor' ? document.getElementById('uShift').value : null;
+
+  if (state.users.some(u => u.username === username)) {
+    toast('🔴 اسم المستخدم هذا مستخدم بالفعل!');
+    return;
+  }
+
+  const newUser = { id: 'usr_' + Date.now(), name, username, role, shiftId, active: true };
+  await setUserPassword(newUser, password);
+  state.users.push(newUser);
+
+  queueSave();
+  closeModal();
+  toast('تمت إضافة حساب المسؤول بنجاح');
+  renderApp();
+}
+
+function openEditUserModal(id) {
+  const u = state.users.find(x => x.id === id);
+  if (!u) return;
+
+  openModal(`
+    <div class="modal-header">
+      <h3 style="margin:0;">تعديل حساب: ${u.name}</h3>
+      <button class="icon-btn" onclick="closeModal()">✕</button>
+    </div>
+    <form onsubmit="handleEditUser(event, '${u.id}')">
+      <label style="font-size:12px;">اسم المسؤول / العضوية</label>
+      <input class="input" id="uName" value="${u.name}" required>
+
+      <label style="font-size:12px; margin-top:8px; display:block;">اسم المستخدم (Username)</label>
+      <input class="input" id="uUsername" value="${u.username}" required>
+
+      <label style="font-size:12px; margin-top:8px; display:block;">كلمة سر جديدة (سيبها فاضية للإبقاء على الحالية)</label>
+      <input class="input" type="text" id="uPassword" placeholder="•••••••• (اختياري)" minlength="4">
+
+      ${u.role === 'supervisor' ? `
+        <label style="font-size:12px; margin-top:8px; display:block;">الشفت المكلّف به</label>
+        <select class="input" id="uShift">
+          ${state.shifts.map(s => `<option value="${s.id}" ${s.id===u.shiftId?'selected':''}>${s.name}</option>`).join('')}
+        </select>
+      ` : ''}
+
+      <button class="btn btn-primary" style="margin-top:16px;">حفظ التغييرات</button>
+    </form>
+  `);
+}
+
+async function handleEditUser(e, id) {
+  e.preventDefault();
+  const u = state.users.find(x => x.id === id);
+  if (u) {
+    u.name = document.getElementById('uName').value;
+    u.username = document.getElementById('uUsername').value.trim();
+    const newPass = document.getElementById('uPassword').value.trim();
+    if (newPass) {
+      await setUserPassword(u, newPass);
+    }
+    if (u.role === 'supervisor') {
+      u.shiftId = document.getElementById('uShift').value;
+    }
+    queueSave();
+    closeModal();
+    toast('تم تحديث الحساب بنجاح');
+    renderApp();
+  }
+}
+
+function toggleUserActive(id) {
+  const u = state.users.find(x => x.id === id);
+  if (u) {
+    u.active = !u.active;
+    queueSave();
+    toast(u.active ? 'تم تفعيل الحساب' : 'تم تعطيل الحساب');
+    renderApp();
+  }
+}
+
+/* ================= WORKERS MANAGEMENT ================= */
+function renderWorkersScreen() {
+  return `
+    <div class="px" style="padding-top:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+        <h3 style="margin:0;">👷 إدارة العمال (${state.workers.length})</h3>
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-secondary btn-sm" onclick="openBulkAddWorkerModal()">📋 إضافة دفعة</button>
+          <button class="btn btn-primary btn-sm" onclick="openAddWorkerModal()">➕ إضافة عامل</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <input class="input" type="text" id="workerSearch" placeholder="🔍 البحث عن اسم أو كود العامل..." oninput="filterWorkerCards()">
+      </div>
+
+      <div id="workersList">
+        ${state.workers.map(w => renderWorkerCard(w)).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderWorkerCard(w) {
+  const shift = state.shifts.find(s => s.id === w.shiftId);
+  const dept = DEPARTMENTS.find(d => d.key === w.deptKey);
+
+  return `
+    <div class="card worker-card-item" data-name="${w.name}" data-code="${w.code}">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <b style="font-size:15px; display:block;">${w.name}</b>
+          <span style="font-size:11px; color:var(--text-muted);">${w.code}</span>
+        </div>
+        <span class="badge ${w.active?'success':'danger'}">${w.active?'🟢 نشط':'🔴 غير نشط'}</span>
+      </div>
+
+      <div style="margin-top:10px; font-size:12.5px; display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+        <div>الشفت: <b>${shift?shift.name:'غير محدد'}</b></div>
+        <div>القسم: <b>${dept?dept.ar:'غير محدد'}</b></div>
+      </div>
+
+      <div style="margin-top:12px; display:flex; gap:6px;">
+        <button class="btn btn-secondary btn-sm" style="flex:1;" onclick="openEditWorkerModal('${w.id}')">✏️ تعديل</button>
+        <button class="btn btn-secondary btn-sm" style="flex:1;" onclick="openShiftTransferModal('${w.id}')">🔄 الشفت</button>
+        <button class="btn ${w.active?'btn-danger':'btn-primary'} btn-sm" onclick="toggleWorkerActive('${w.id}')">${w.active?'تعطيل':'تفعيل'}</button>
+      </div>
+    </div>
+  `;
+}
+
+function filterWorkerCards() {
+  const query = document.getElementById('workerSearch').value.toLowerCase();
+  document.querySelectorAll('.worker-card-item').forEach(card => {
+    const name = card.dataset.name.toLowerCase();
+    const code = card.dataset.code.toLowerCase();
+    card.style.display = (name.includes(query) || code.includes(query)) ? 'block' : 'none';
+  });
+}
+
+function openAddWorkerModal() {
+  openModal(`
+    <div class="modal-header">
+      <h3 style="margin:0;">إضافة عامل جديد</h3>
+      <button class="icon-btn" onclick="closeModal()">✕</button>
+    </div>
+    <form onsubmit="handleAddWorker(event)">
+      <label style="font-size:12px;">اسم العامل الرباعي</label>
+      <input class="input" id="wName" required placeholder="مثال: أحمد سعيد عبد العزيز">
+      
+      <label style="font-size:12px; margin-top:8px; display:block;">كود العامل</label>
+      <input class="input" id="wCode" required placeholder="W-000">
+
+      <div class="muted" style="margin-top:10px;">💡 سيظهر العامل ضمن "العمال غير الموزعين" في شاشة 🧩 توزيع الأقسام، حسب الشفت الذي تختاره له من هناك.</div>
+
+      <button class="btn btn-primary" style="margin-top:16px;">حفظ العامل</button>
+    </form>
+  `);
+}
+
+function handleAddWorker(e) {
+  e.preventDefault();
+  const name = document.getElementById('wName').value.trim();
+  const code = document.getElementById('wCode').value.trim();
+
+  if (!name || !code) { toast('اكتب اسم العامل والكود الوظيفي'); return; }
+  if (state.workers.some(w => w.code === code)) { toast('🔴 هذا الكود الوظيفي مستخدم بالفعل'); return; }
+
+  state.workers.push({ id: 'W-' + Date.now().toString().slice(-6), name, code, shiftId: null, deptKey: null, active: true, present: true });
+  queueSave();
+  closeModal();
+  toast('تمت إضافة العامل بنجاح، وزّعه على شفت من شاشة 🧩 توزيع الأقسام');
+  renderApp();
+}
+
+/* ================= BULK ADD WORKERS ================= */
+let bulkWorkerRowSeq = 0;
+function openBulkAddWorkerModal() {
+  bulkWorkerRowSeq = 0;
+  openModal(`
+    <div class="modal-header">
+      <h3 style="margin:0;">📋 إضافة دفعة عمال</h3>
+      <button class="icon-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="muted" style="margin-bottom:8px;">أضف صف لكل عامل (خانة للاسم وخانة للكود)، وزوّد صفوف حسب عدد العمال.</div>
+    <div id="bulkWorkerRows"></div>
+    <button type="button" class="btn btn-secondary" style="width:100%;margin-top:8px;" onclick="addBulkWorkerRow()">➕ إضافة صف عامل</button>
+    <div class="muted" style="margin-top:10px;">سيتم إضافة العمال كـ "غير موزعين" (بدون شفت أو قسم)، وزّعهم بعد كده من شاشة 🧩 توزيع الأقسام. لو في أي خطأ (اسم أو كود ناقص، أو كود مكرر) مش هيتضاف أي عامل خالص وهنقولك الصف اللي فيه المشكلة بالظبط.</div>
+    <button class="btn btn-primary" style="width:100%;margin-top:14px;" onclick="handleBulkAddWorkers()">➕ إضافة الكل</button>
+  `);
+  addBulkWorkerRow(); addBulkWorkerRow(); addBulkWorkerRow();
+}
+
+function addBulkWorkerRow(){
+  const wrap = document.getElementById('bulkWorkerRows');
+  if(!wrap) return;
+  bulkWorkerRowSeq++;
+  const rid = bulkWorkerRowSeq;
+  const row = document.createElement('div');
+  row.id = 'bulkRow' + rid;
+  row.style.cssText = 'display:flex;gap:6px;align-items:center;margin-top:8px;';
+  row.innerHTML = `
+    <input class="input" style="flex:2;margin-top:0;" placeholder="اسم العامل" data-role="bulkName">
+    <input class="input" style="flex:1;margin-top:0;" placeholder="الكود" data-role="bulkCode">
+    <button type="button" class="icon-btn" onclick="removeBulkWorkerRow(${rid})" title="حذف الصف">✕</button>
+  `;
+  wrap.appendChild(row);
+}
+
+function removeBulkWorkerRow(rid){
+  const row = document.getElementById('bulkRow' + rid);
+  if(row) row.remove();
+}
+
+function handleBulkAddWorkers(){
+  const wrap = document.getElementById('bulkWorkerRows');
+  if(!wrap) return;
+  const rows = Array.from(wrap.children);
+  const existingCodes = new Set(state.workers.map(w=>w.code));
+  const seenInBatch = new Set();
+  const toAdd = [];
+  const errors = [];
+
+  rows.forEach((row, idx)=>{
+    const nameEl = row.querySelector('[data-role="bulkName"]');
+    const codeEl = row.querySelector('[data-role="bulkCode"]');
+    const name = nameEl ? nameEl.value.trim() : '';
+    const code = codeEl ? codeEl.value.trim() : '';
+    if(!name && !code) return; // صف فاضي بالكامل، اتجاهله بهدوء
+    if(!name || !code){ errors.push(`الصف ${idx+1}: لازم الاسم والكود مع بعض`); return; }
+    if(existingCodes.has(code) || seenInBatch.has(code)){ errors.push(`الصف ${idx+1}: الكود "${code}" مستخدم بالفعل`); return; }
+    seenInBatch.add(code);
+    toAdd.push({ name, code });
+  });
+
+  if(errors.length){ toast('🔴 ' + errors[0] + (errors.length>1 ? ` (و${errors.length-1} خطأ تاني)` : '')); return; }
+  if(!toAdd.length){ toast('اكتب عامل واحد على الأقل (اسم + كود)'); return; }
+
+  toAdd.forEach((w, i)=>{
+    const id = 'W-' + Date.now().toString().slice(-6) + '-' + i + '-' + Math.random().toString(36).slice(2,5);
+    state.workers.push({ id, name:w.name, code:w.code, shiftId:null, deptKey:null, active:true, present:true });
+  });
+  queueSave();
+  closeModal();
+  toast(`🟢 تم إضافة ${toAdd.length} عامل بنجاح`);
+  renderApp();
+}
+
+function openEditWorkerModal(id) {
+  const w = state.workers.find(x => x.id === id);
+  if (!w) return;
+
+  openModal(`
+    <div class="modal-header">
+      <h3 style="margin:0;">تعديل بيانات العامل</h3>
+      <button class="icon-btn" onclick="closeModal()">✕</button>
+    </div>
+    <form onsubmit="handleEditWorker(event, '${w.id}')">
+      <label style="font-size:12px;">اسم العامل</label>
+      <input class="input" id="wName" value="${escapeHtml(w.name)}" required>
+      
+      <label style="font-size:12px; margin-top:8px; display:block;">كود العامل</label>
+      <input class="input" id="wCode" value="${escapeHtml(w.code)}" required>
+
+      <div class="muted" style="margin-top:10px;">💡 لتغيير الشفت استخدم شاشة 🔄 تغيير الشفتات، ولتغيير القسم استخدم شاشة 🧩 توزيع الأقسام.</div>
+
+      <button class="btn btn-primary" style="margin-top:16px;">حفظ التغييرات</button>
+    </form>
+  `);
+}
+
+function handleEditWorker(e, id) {
+  e.preventDefault();
+  const w = state.workers.find(x => x.id === id);
+  if (w) {
+    const newCode = document.getElementById('wCode').value.trim();
+    if (state.workers.some(x => x.id !== id && x.code === newCode)) { toast('🔴 هذا الكود الوظيفي مستخدم بالفعل'); return; }
+    w.name = document.getElementById('wName').value.trim();
+    w.code = newCode;
+    queueSave();
+    closeModal();
+    toast('تم تحديث البيانات');
+    renderApp();
+  }
+}
+
+function openShiftTransferModal(id) {
+  const w = state.workers.find(x => x.id === id);
+  const currentShift = state.shifts.find(s => s.id === w.shiftId);
+  const targetShift = state.shifts.find(s => s.id !== w.shiftId);
+
+  openModal(`
+    <div class="modal-header">
+      <h3 style="margin:0;">تغيير شفت العامل</h3>
+      <button class="icon-btn" onclick="closeModal()">✕</button>
+    </div>
+    <p style="font-size:13.5px;">هل تريد نقل العامل <b>${w.name}</b> من <b>${currentShift.name}</b> إلى <b>${targetShift.name}</b>؟</p>
+    <div style="display:flex; gap:8px; margin-top:16px;">
+      <button class="btn btn-secondary" onclick="closeModal()">إلغاء</button>
+      <button class="btn btn-primary" onclick="confirmShiftTransfer('${w.id}', '${targetShift.id}')">تأكيد النقل</button>
+    </div>
+  `);
+}
+
+function confirmShiftTransfer(workerId, targetShiftId) {
+  const w = state.workers.find(x => x.id === workerId);
+  if (w) {
+    w.shiftId = targetShiftId;
+    queueSave();
+    closeModal();
+    toast('تم نقل العامل إلى الشفت الجديد');
+    renderApp();
+  }
+}
+
+function toggleWorkerActive(id) {
+  const w = state.workers.find(x => x.id === id);
+  if (w) {
+    w.active = !w.active;
+    queueSave();
+    toast(w.active ? 'تم إعادة تفعيل العامل' : 'تم تعطيل العامل');
+    renderApp();
+  }
+}
+
+/* ================= SHIFTS MANAGEMENT ================= */
+function renderShiftsScreen() {
+  return `
+    <div class="px" style="padding-top:12px;">
+      <h3 style="margin:0 0 12px;">🕐 إدارة الشفتات</h3>
+      ${state.shifts.map(s => {
+        const sups = state.users.filter(u => u.shiftId === s.id && u.role === 'supervisor');
+        const count = state.workers.filter(w => w.shiftId === s.id && w.active).length;
+        return `
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <b style="font-size:16px;">${s.icon} ${s.name}</b>
+              <span class="badge info">${s.startTime} → ${s.endTime}</span>
+            </div>
+            <div style="margin-top:8px; font-size:13px; color:var(--text-muted);">
+              المسؤولون المكلفون: <b>${sups.length > 0 ? sups.map(x=>x.name).join('، ') : 'غير محدد'}</b> | عدد العمال: <b>${count}</b>
+            </div>
+            <div style="margin-top:12px; display:flex; gap:6px;">
+              <button class="btn btn-secondary btn-sm" onclick="openEditShiftModal('${s.id}')">✏️ تعديل الأوقات</button>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function openEditShiftModal(shiftId) {
+  const s = state.shifts.find(x => x.id === shiftId);
+  openModal(`
+    <div class="modal-header">
+      <h3 style="margin:0;">تعديل أوقات ${s.name}</h3>
+      <button class="icon-btn" onclick="closeModal()">✕</button>
+    </div>
+    <form onsubmit="handleEditShift(event, '${s.id}')">
+      <label style="font-size:12px;">وقت البداية</label>
+      <input class="input" type="time" id="sStart" value="${s.startTime}" required>
+
+      <label style="font-size:12px; margin-top:8px; display:block;">وقت النهاية</label>
+      <input class="input" type="time" id="sEnd" value="${s.endTime}" required>
+
+      <button class="btn btn-primary" style="margin-top:16px;">حفظ الأوقات</button>
+    </form>
+  `);
+}
+
+function handleEditShift(e, id) {
+  e.preventDefault();
+  const s = state.shifts.find(x => x.id === id);
+  if (s) {
+    s.startTime = document.getElementById('sStart').value;
+    s.endTime = document.getElementById('sEnd').value;
+    queueSave();
+    closeModal();
+    toast('تم تحديث أوقات الشفت');
+    renderApp();
+  }
+}
+
+/* ================= REPORT WIZARD ================= */
+function startNewReport() {
+  const user = getLoggedInUser();
+  const defaultShiftId = user.role === 'supervisor' && user.shiftId ? user.shiftId : 'shift_m';
+
+  state.activeWizard = {
+    step: 1,
+    shiftId: defaultShiftId,
+    attendance: {},
+    depts: { picking: [], shipping: [], scanning: [], floor: [] },
+    ops: { truckCount: 0, status: 'ممتاز', notes: '', issues: '' }
+  };
+
+  const activeShiftWorkers = state.workers.filter(w => w.active && w.shiftId === defaultShiftId);
+  activeShiftWorkers.forEach(w => {
+    state.activeWizard.attendance[w.id] = 'present';
+    if (state.activeWizard.depts[w.deptKey]) {
+      state.activeWizard.depts[w.deptKey].push(w.id);
+    }
+  });
+
+  setScreen('wizard');
+}
+
+function renderWizardScreen() {
+  if (!state.activeWizard) startNewReport();
+  const wiz = state.activeWizard;
+
+  return `
+    <div class="px" style="padding-top:12px;">
+      <div class="card" style="margin-bottom:8px; padding:12px;">
+        <div style="font-size:12px; color:var(--text-muted);">خطوة ${wiz.step} من 3</div>
+        <div style="font-weight:800; font-size:15px;">
+          ${wiz.step===1?'1. اختيار الشفت وكشف الحضور والغياب':wiz.step===2?'2. توزيع العمال على الأقسام':'3. التقرير التشغيلي والملاحظات الإضافية'}
+        </div>
+      </div>
+
+      ${wiz.step===1 ? renderWizardStep1() : wiz.step===2 ? renderWizardStep2() : renderWizardStep3()}
+
+      <div style="display:flex; gap:8px; margin-top:14px;">
+        ${wiz.step > 1 ? `<button class="btn btn-secondary" onclick="wizStep(-1)">السابق</button>` : ''}
+        ${wiz.step < 3 ? `<button class="btn btn-primary" onclick="wizStep(1)">التالي</button>` : `<button class="btn btn-primary" onclick="submitFinalReport()">إرسال التقرير النهائي</button>`}
+      </div>
+    </div>
+  `;
+}
+
+function renderWizardStep1() {
+  const wiz = state.activeWizard;
+  const user = getLoggedInUser();
+  const isAdmin = user.role === 'admin';
+  const activeShiftWorkers = state.workers.filter(w => w.active && w.shiftId === wiz.shiftId);
+
+  return `
+    <div class="card">
+      <label style="font-size:12px; font-weight:700;">الشفت التشغيلي الحالي</label>
+      ${isAdmin ? `
+        <select class="input" onchange="changeWizardShift(this.value)">
+          ${state.shifts.map(s => `<option value="${s.id}" ${s.id===wiz.shiftId?'selected':''}>${s.icon} ${s.name} (${s.startTime} - ${s.endTime})</option>`).join('')}
+        </select>
+      ` : `
+        <div class="input" style="background:var(--surface-2); font-weight:bold;">
+          ${state.shifts.find(s=>s.id===wiz.shiftId)?.name} (${state.shifts.find(s=>s.id===wiz.shiftId)?.startTime} - ${state.shifts.find(s=>s.id===wiz.shiftId)?.endTime})
+        </div>
+      `}
+    </div>
+
+    <div class="card">
+      <div style="font-weight:800; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+        <span>📋 كشف حضور عمال الشفت (${activeShiftWorkers.length})</span>
+      </div>
+
+      ${activeShiftWorkers.length === 0 ? '<div style="color:var(--text-muted); font-size:13px;">لا يوجد عمال مخصصين لهذا الشفت حالياً.</div>' : ''}
+
+      ${activeShiftWorkers.map(w => {
+        const st = wiz.attendance[w.id] || 'present';
+        return `
+          <div style="padding:10px 0; border-bottom:1px solid var(--border);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <b>${w.name}</b>
+              <span style="font-size:11px; color:var(--text-muted);">${w.code}</span>
+            </div>
+            
+            <select class="input" style="font-size:12.5px; padding:6px 10px;" onchange="updateWorkerAttendance('${w.id}', this.value)">
+              ${ATTENDANCE_OPTIONS.map(opt => `<option value="${opt.key}" ${st===opt.key?'selected':''}>${opt.label}</option>`).join('')}
+            </select>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+// دالة تحديث حالة الحضور وتفريغه من الأقسام فوراً لو غائب
+function updateWorkerAttendance(workerId, statusKey) {
+  state.activeWizard.attendance[workerId] = statusKey;
+  
+  // لو الحالة غياب (بإذن أو بدون إذن)، يتشال فوراً من كل الأقسام
+  if (statusKey === 'absent' || statusKey === 'absent_perm') {
+    const depts = state.activeWizard.depts;
+    Object.keys(depts).forEach(k => {
+      depts[k] = depts[k].filter(id => id !== workerId);
+    });
+  }
+}
+
+function changeWizardShift(shiftId) {
+  state.activeWizard.shiftId = shiftId;
+  state.activeWizard.attendance = {};
+  state.activeWizard.depts = { picking: [], shipping: [], scanning: [], floor: [] };
+  const activeShiftWorkers = state.workers.filter(w => w.active && w.shiftId === shiftId);
+  activeShiftWorkers.forEach(w => {
+    state.activeWizard.attendance[w.id] = 'present';
+    if (state.activeWizard.depts[w.deptKey]) {
+      state.activeWizard.depts[w.deptKey].push(w.id);
+    }
+  });
+  renderApp();
+}
+
+function renderWizardStep2() {
+  const wiz = state.activeWizard;
+  // فلترة العمال: استبعاد أي عامل حالته غياب أو غياب بإذن نهائياً من العرض والأزرار
+  const activeShiftWorkers = state.workers.filter(w => 
+    w.active && 
+    w.shiftId === wiz.shiftId && 
+    wiz.attendance[w.id] !== 'absent' && 
+    wiz.attendance[w.id] !== 'absent_perm'
+  );
+
+  return `
+    <div class="card">
+      <div style="font-weight:800; margin-bottom:8px;">توزيع العمال المتواجدين على الأقسام الأربعة</div>
+      <p style="font-size:11.5px; color:var(--text-muted); margin-bottom:10px;">* العمال المسجلين (غياب) تم استبعادهم تلقائياً من القائمة أدناه.</p>
+      
+      ${activeShiftWorkers.length === 0 ? '<div style="color:var(--danger); font-size:13px; text-align:center;">جميع عمال الشفت في حالة غياب!</div>' : ''}
+
+      ${DEPARTMENTS.map(d => {
+        const list = wiz.depts[d.key] || [];
+        // تصفية المحافظة على الحاضرين فقط داخل الأقسام
+        const filteredList = list.filter(id => activeShiftWorkers.some(w => w.id === id));
+        return `
+          <div style="margin-bottom:10px; border:1px solid var(--border); border-radius:8px; padding:8px;">
+            <div style="font-weight:700; color:var(--accent);">${d.ar} (${filteredList.length})</div>
+            <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:6px;">
+              ${activeShiftWorkers.map(w => {
+                const assigned = filteredList.includes(w.id);
+                const displayName = getWorkerDisplayName(w, activeShiftWorkers);
+                return `
+                  <button class="btn ${assigned?'btn-primary':'btn-secondary'} btn-sm" style="padding:4px 8px; font-size:11px;" onclick="toggleDeptAssignment('${d.key}', '${w.id}')">
+                    ${displayName}
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function toggleDeptAssignment(deptKey, workerId) {
+  const depts = state.activeWizard.depts;
+  Object.keys(depts).forEach(k => {
+    depts[k] = depts[k].filter(id => id !== workerId);
+  });
+  depts[deptKey].push(workerId);
+  renderApp();
+}
+
+function renderWizardStep3() {
+  const wiz = state.activeWizard;
+  return `
+    <div class="card">
+      <div style="font-weight:800; margin-bottom:8px;">🚚 التشغيل - حركة السيارات والملاحظات</div>
+      <label style="font-size:12px;">عدد سيارات الشحن</label>
+      <input class="input" type="number" id="wizTrucks" value="${wiz.ops.truckCount}" oninput="state.activeWizard.ops.truckCount=this.value" onchange="state.activeWizard.ops.truckCount=this.value">
+
+      <label style="font-size:12px; margin-top:8px; display:block;">حالة التشغيل العامة</label>
+      <select class="input" onchange="state.activeWizard.ops.status=this.value">
+        <option ${wiz.ops.status==='ممتاز'?'selected':''}>ممتاز</option>
+        <option ${wiz.ops.status==='جيد'?'selected':''}>جيد</option>
+        <option ${wiz.ops.status==='مزدحم'?'selected':''}>مزدحم / فيه تأخير</option>
+      </select>
+
+      <label style="font-size:12px; margin-top:8px; display:block;">ملاحظات المشرف العامة</label>
+      <textarea class="input" id="wizNotes" rows="2" placeholder="ملاحظات عامة حول الشفت..." oninput="state.activeWizard.ops.notes=this.value" onchange="state.activeWizard.ops.notes=this.value">${wiz.ops.notes || ''}</textarea>
+
+      <label style="font-size:12px; margin-top:12px; display:block; color:var(--danger); font-weight:bold;">⚠️ مشاكل وملاحظات إضافية (الترانس بلت / أعطال / التشغيل)</label>
+      <textarea class="input" id="wizIssues" rows="3" placeholder="اكتب هنا أي أعطال أو مشاكل ظهرت في الترانس بلت أو سير العمل أو التشغيل..." style="border-color: var(--danger-soft);" oninput="state.activeWizard.ops.issues=this.value" onchange="state.activeWizard.ops.issues=this.value">${wiz.ops.issues || ''}</textarea>
+    </div>
+  `;
+}
+
+function wizStep(delta) {
+  const notesEl = document.getElementById('wizNotes');
+  const issuesEl = document.getElementById('wizIssues');
+  const trucksEl = document.getElementById('wizTrucks');
+  
+  if (notesEl) state.activeWizard.ops.notes = notesEl.value;
+  if (issuesEl) state.activeWizard.ops.issues = issuesEl.value;
+  if (trucksEl) state.activeWizard.ops.truckCount = trucksEl.value;
+
+  state.activeWizard.step += delta;
+  renderApp();
+}
+
+function submitFinalReport() {
+  const notesEl = document.getElementById('wizNotes');
+  const issuesEl = document.getElementById('wizIssues');
+  const trucksEl = document.getElementById('wizTrucks');
+  
+  if (notesEl) state.activeWizard.ops.notes = notesEl.value.trim();
+  if (issuesEl) state.activeWizard.ops.issues = issuesEl.value.trim();
+  if (trucksEl) state.activeWizard.ops.truckCount = trucksEl.value;
+
+  const wiz = state.activeWizard;
+  const shift = state.shifts.find(s => s.id === wiz.shiftId);
+  const user = getLoggedInUser();
+  const activeWorkers = state.workers.filter(w => w.active && w.shiftId === wiz.shiftId);
+
+  const snapshot = {
+    id: 'REP-' + Date.now(),
+    date: dateTodayLabel(),
+    dateISO: localISO(new Date()),
+    shiftId: wiz.shiftId,
+    shiftName: shift.name,
+    shiftTimes: `${shift.startTime} → ${shift.endTime}`,
+    supervisor: user ? user.name : 'مشرف',
+    workersCount: activeWorkers.length,
+    attendance: { ...wiz.attendance },
+    departments: JSON.parse(JSON.stringify(wiz.depts)),
+    ops: { ...wiz.ops },
+    telegramSent: false
+  };
+
+  state.reports.unshift(snapshot);
+
+  if (state.telegram.autoSend && state.telegram.botToken && state.telegram.chatId) {
+    sendTelegramReport(snapshot);
+  }
+
+  state.activeWizard = null;
+  queueSave();
+  toast('تم حفظ وإرسال التقرير بنجاح');
+  setScreen('reports');
+}
+
+/* ================= REPORTS LIST ================= */
+function renderReportsScreen() {
+  return `
+    <div class="px" style="padding-top:12px;">
+      <h3 style="margin:0 0 12px;">📊 سجل التقارير التشغيلية (${state.reports.length})</h3>
+      ${state.reports.length === 0 ? '<div class="card">لا توجد تقارير محفوظة بعد.</div>' : ''}
+      ${state.reports.map(r => `
+        <div class="card">
+          <div style="display:flex; justify-content:space-between;">
+            <b>${r.shiftName} - ${r.date}</b>
+            <span class="badge ${r.telegramSent?'success':'warning'}">${r.telegramSent?'تم Telegram':'لم يرسل'}</span>
+          </div>
+          <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+            محرر التقرير: <b>${r.supervisor}</b> | إجمالي العمال: ${r.workersCount}
+          </div>
+          <div style="font-size:12px; margin-top:4px;">
+            الملاحظات العامة: <b>${r.ops.notes || 'لا يوجد'}</b>
+          </div>
+          ${r.ops.issues ? `
+            <div style="font-size:12px; margin-top:4px; color:var(--danger);">
+              ⚠️ مشاكل التشغيل والترانس بلت: <b>${r.ops.issues}</b>
+            </div>
+          ` : ''}
+          <div style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;">
+            <button class="btn btn-secondary btn-sm" onclick="resendTelegram('${r.id}')">📲 إعادة إرسال Telegram</button>
+            ${isAdmin() ? `<button class="btn btn-danger btn-sm" onclick="deleteReport('${r.id}')">🗑️ حذف</button>` : ''}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+/* حذف تقرير من السجل نهائيًا (متاح للمشرف الرئيسي فقط). */
+function deleteReport(id){
+  const r = state.reports.find(x=>x.id===id);
+  if(!r) return;
+  if(!confirm(`حذف تقرير "${r.shiftName} - ${r.date}"؟ لا يمكن التراجع عن هذا الإجراء.`)) return;
+  state.reports = state.reports.filter(x=>x.id!==id);
+  queueSave();
+  toast('🗑️ تم حذف التقرير');
+  renderApp();
+}
+
+/* ================= TELEGRAM INTEGRATION ================= */
+/* يهرّب الرموز الخاصة بصيغة Markdown القديمة في Telegram (_ * ` [ ]) عشان أي حرف زيادة يكتبه المشرف
+   في اسم عامل أو ملاحظة (زي "-" أو "*" أو "_") ميبوظش الرسالة كلها ويوقف الإرسال بسبب Bad Request. */
+function escTgMd(s){
+  return String(s==null?'':s).replace(/([_*`\[\]])/g, '\\$1');
+}
+async function sendTelegramReport(rep) {
+  const notesText = (rep.ops && rep.ops.notes && rep.ops.notes.trim() !== '') ? escTgMd(rep.ops.notes.trim()) : 'لا يوجد';
+  const issuesText = (rep.ops && rep.ops.issues && rep.ops.issues.trim() !== '') ? escTgMd(rep.ops.issues.trim()) : 'لا يوجد مشاكل أو أعطال';
+
+  // تجميع تفاصيل الحضور والغياب مع توضيح الحالة بالضبط
+  let attendanceSummary = [];
+  Object.keys(rep.attendance).forEach(wId => {
+    const w = state.workers.find(x => x.id === wId);
+    const stKey = rep.attendance[wId];
+    const stObj = ATTENDANCE_OPTIONS.find(o => o.key === stKey);
+    if (w && stObj) {
+      attendanceSummary.push(`• ${escTgMd(w.name)}: [${stObj.tag}]`);
+    }
+  });
+
+  const attendanceStr = attendanceSummary.length > 0 ? attendanceSummary.join('\n') : 'لا يوجد عمال مسجلين';
+
+  // تجميع توزيع العمال الحاضرين على الأقسام
+  let deptSummary = [];
+  DEPARTMENTS.forEach(d => {
+    const workerIds = rep.departments[d.key] || [];
+    const names = workerIds.map(id => {
+      const w = state.workers.find(x => x.id === id);
+      return w ? escTgMd(w.name) : '';
+    }).filter(n => n !== '');
+
+    if (names.length > 0) {
+      deptSummary.push(`🔹 *${d.ar}* (${names.length}):\n  └ ${names.join('، ')}`);
+    }
+  });
+
+  const deptStr = deptSummary.length > 0 ? deptSummary.join('\n\n') : 'لم يتم توزيع عمال على الأقسام';
+
+  const text = `🏢 *Saudi Market - Warehouse Operations*
+📅 *التاريخ:* ${escTgMd(rep.date)}
+🕐 *الوردية:* ${escTgMd(rep.shiftName)} (${escTgMd(rep.shiftTimes)})
+👨‍💼 *محرر التقرير:* ${escTgMd(rep.supervisor)}
+👷 *إجمالي العمال:* ${rep.workersCount}
+
+-----------------------------------
+📋 *كشف حالات وحضور العمال:*
+${attendanceStr}
+
+-----------------------------------
+🏗️ *توزيع العمال على الأقسام:*
+${deptStr}
+
+-----------------------------------
+🚚 *سيارات الشحن:* ${rep.ops.truckCount || 0}
+📝 *الملاحظات العامة:* ${notesText}
+⚠️ *مشاكل الترانس بلت والتشغيل:* ${issuesText}`;
+
+  try {
+    const bot = getActiveTelegramBot();
+    if (!bot?.botToken || !bot?.chatId) { toast('⚠️ لم يتم ضبط بوت Telegram النشط'); return; }
+    const res = await fetch(`https://api.telegram.org/bot${encodeURIComponent(bot.botToken)}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: bot.chatId, text, parse_mode: 'Markdown' })
+    });
+    if (res.ok) {
+      rep.telegramSent = true;
+      rep.telegramBotId = bot.id;
+      queueSave();
+      toast(`🟢 تم الإرسال عبر ${bot.name}`);
+    } else {
+      // نعرض سبب الفشل الحقيقي من Telegram بدل رسالة عامة، عشان تعرف بالظبط لو المشكلة Token غلط
+      // أو Chat ID غلط أو حاجة تانية.
+      let j = {}; try { j = await res.json(); } catch (e) {}
+      toast('🔴 فشل إرسال Telegram' + (j.description ? ': ' + j.description : '، راجع بيانات البوت'));
+    }
+  } catch (e) { toast('🔴 تعذر الاتصال بـ Telegram'); }
+}
+
+function resendTelegram(reportId) {
+  const r = state.reports.find(x => x.id === reportId);
+  if (r) {
+    sendTelegramReport(r);
+    toast('جاري إعادة الإرسال...');
+  }
+}
+
+/* ================= SETTINGS ================= */
+function ensureTelegramBots(){
+  state.telegram = state.telegram || {botToken:'',chatId:'',autoSend:true,bots:[],activeBotId:''};
+  state.telegram.bots = Array.isArray(state.telegram.bots) ? state.telegram.bots : [];
+  // Backward compatibility with the old single-bot fields.
+  if (!state.telegram.bots.length && state.telegram.botToken && state.telegram.chatId){
+    state.telegram.bots.push({id:'TG-'+Date.now(),name:'البوت الحالي',botToken:state.telegram.botToken,chatId:state.telegram.chatId,active:true});
+  }
+  if (!state.telegram.activeBotId && state.telegram.bots.length) state.telegram.activeBotId = state.telegram.bots[0].id;
+  const active = state.telegram.bots.find(b=>b.id===state.telegram.activeBotId) || state.telegram.bots[0];
+  if (active){ state.telegram.activeBotId=active.id; state.telegram.botToken=active.botToken; state.telegram.chatId=active.chatId; }
+}
+ensureTelegramBots();
+function getActiveTelegramBot(){
+  ensureTelegramBots();
+  return state.telegram.bots.find(b=>b.id===state.telegram.activeBotId) || null;
+}
+function renderSettingsScreen(){
+  if(!isAdmin()) return `<div class="px" style="padding-top:20px"><div class="card">🔒 هذه الإعدادات متاحة للمشرف الرئيسي فقط.</div></div>`;
+  ensureTelegramBots();
+  const active=getActiveTelegramBot();
+  return `
+    <div class="px" style="padding-top:12px;">
+      <div class="row" style="margin-bottom:12px;"><h3 style="margin:0;">⚙️ إعدادات المشرف الرئيسي</h3></div>
+      <div class="card">
+        <div style="font-weight:800;margin-bottom:6px;">🤖 إدارة بوتات Telegram</div>
+        <div class="muted" style="margin-bottom:12px;">هذه الإضافة تظهر للمشرف الرئيسي فقط. يمكنك إضافة أكثر من بوت، وتحديد البوت الذي يستقبل التقارير تلقائيًا.</div>
+        ${state.telegram.bots.length ? state.telegram.bots.map(b=>`<div class="card" style="margin:8px 0;padding:12px;border:1px solid ${b.id===state.telegram.activeBotId?'var(--accent)':'var(--border)'}"><div class="row"><div><b>${escapeHtml(b.name||'بوت Telegram')}</b><div class="muted">Chat ID: ${escapeHtml(b.chatId)}</div></div><span class="badge ${b.id===state.telegram.activeBotId?'success':'info'}">${b.id===state.telegram.activeBotId?'🟢 نشط':'غير نشط'}</span></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"><button class="btn btn-primary btn-sm" onclick="selectTelegramBot('${b.id}')">${b.id===state.telegram.activeBotId?'البوت الحالي':'تفعيل البوت'}</button><button class="btn btn-secondary btn-sm" onclick="editTelegramBot('${b.id}')">✏️ تعديل</button>${state.telegram.bots.length>1?`<button class="btn btn-danger btn-sm" onclick="deleteTelegramBot('${b.id}')">🗑️ حذف</button>`:''}<button class="btn btn-secondary btn-sm" onclick="testTelegramBot('${b.id}')">📡 اختبار</button></div></div>`).join('') : '<div class="card">لا يوجد بوتات مضافة حاليًا.</div>'}
+        <button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="openTelegramBotModal()">➕ إضافة بوت Telegram جديد</button>
+      </div>
+      <div class="card">
+        <div style="font-weight:800;margin-bottom:8px;">⚡ الإرسال التلقائي</div>
+        <label class="check-row"><input type="checkbox" id="tgAutoSend" ${state.telegram.autoSend!==false?'checked':''} onchange="toggleTelegramAutoSend(this.checked)"><span>إرسال التقارير تلقائيًا إلى البوت النشط</span></label>
+        <div class="muted" style="margin-top:8px;">البوت النشط حاليًا: <b>${escapeHtml(active?.name||'غير محدد')}</b></div>
+      </div>
+    </div>`;
+}
+function openTelegramBotModal(id){
+  if(!isAdmin()) return;
+  ensureTelegramBots();
+  const b=id?state.telegram.bots.find(x=>x.id===id):null;
+  openModal(`<div class="modal-header"><h3 style="margin:0">🤖 ${b?'تعديل بوت Telegram':'إضافة بوت Telegram'}</h3><button class="icon-btn" onclick="closeModal()">✕</button></div><label class="muted">اسم البوت</label><input class="input" id="tgBotName" value="${escapeHtml(b?.name||'')}" placeholder="مثال: بوت التقارير الرئيسي"><label class="muted" style="display:block;margin-top:10px">Bot Token</label><input class="input" type="password" id="tgBotToken" value="${escapeHtml(b?.botToken||'')}" placeholder="123456:ABC..."><label class="muted" style="display:block;margin-top:10px">Chat ID</label><input class="input" id="tgBotChat" value="${escapeHtml(b?.chatId||'')}" placeholder="-100xxxxxxxxxx"><button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="saveTelegramBot('${b?.id||''}')">💾 حفظ البوت</button>`);
+}
+function saveTelegramBot(id){
+  if(!isAdmin()) return;
+  const name=document.getElementById('tgBotName')?.value.trim()||'بوت Telegram';
+  const token=document.getElementById('tgBotToken')?.value.trim()||'';
+  const chat=document.getElementById('tgBotChat')?.value.trim()||'';
+  if(!token||!chat){toast('اكتب Bot Token و Chat ID');return;}
+  ensureTelegramBots();
+  let b=id?state.telegram.bots.find(x=>x.id===id):null;
+  if(b){b.name=name;b.botToken=token;b.chatId=chat;} else {b={id:'TG-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),name,botToken:token,chatId:chat};state.telegram.bots.push(b);if(!state.telegram.activeBotId)state.telegram.activeBotId=b.id;}
+  if(state.telegram.activeBotId===b.id){state.telegram.botToken=b.botToken;state.telegram.chatId=b.chatId;}
+  queueSave();closeModal();toast('🟢 تم حفظ بيانات البوت');renderApp();
+}
+function selectTelegramBot(id){
+  if(!isAdmin()) return; ensureTelegramBots(); const b=state.telegram.bots.find(x=>x.id===id); if(!b)return;
+  state.telegram.activeBotId=b.id;state.telegram.botToken=b.botToken;state.telegram.chatId=b.chatId;queueSave();toast(`🟢 تم تفعيل ${b.name}`);renderApp();
+}
+function editTelegramBot(id){openTelegramBotModal(id);}
+function deleteTelegramBot(id){
+  if(!isAdmin()) return; ensureTelegramBots(); const b=state.telegram.bots.find(x=>x.id===id); if(!b)return;
+  if(!confirm(`حذف البوت "${b.name}"؟`))return;
+  state.telegram.bots=state.telegram.bots.filter(x=>x.id!==id);
+  if(state.telegram.activeBotId===id){const next=state.telegram.bots[0];state.telegram.activeBotId=next?.id||'';state.telegram.botToken=next?.botToken||'';state.telegram.chatId=next?.chatId||'';}
+  queueSave();toast('تم حذف البوت');renderApp();
+}
+function testTelegramBot(id){
+  if(!isAdmin()) return; ensureTelegramBots(); const b=state.telegram.bots.find(x=>x.id===id); if(!b)return;
+  fetch(`https://api.telegram.org/bot${encodeURIComponent(b.botToken)}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:b.chatId,text:'🟢 اختبار اتصال ناجح من تطبيق عمليات مخزن سعودي ماركت!'})}).then(async res=>{if(res.ok)toast(`🟢 تم اختبار ${b.name} بنجاح`);else{let j={};try{j=await res.json()}catch{}toast(`🔴 فشل الاختبار${j.description?': '+j.description:''}`)}}).catch(()=>toast('🔴 تعذر الاتصال بـ Telegram'));
+}
+function toggleTelegramAutoSend(on){if(!isAdmin())return;state.telegram.autoSend=!!on;queueSave();toast(on?'🟢 تم تفعيل الإرسال التلقائي':'⚪ تم إيقاف الإرسال التلقائي');}
+// Backward-compatible wrapper used by older UI references.
+function testTelegram(){const b=getActiveTelegramBot();if(b)testTelegramBot(b.id);else openTelegramBotModal();}
+
+/* ================= INITIALIZATION & EVENT ATTACH ================= */
+function attachEvents() {
+  const themeBtn = document.getElementById('themeBtn');
+  if (themeBtn) {
+    themeBtn.onclick = () => {
+      state.theme = state.theme === 'dark' ? 'light' : 'dark';
+      renderApp();
+      queueSave();
+    };
+  }
+
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) {
+    logoutBtn.onclick = handleLogout;
+  }
+}
+
+/* ================= V2 EXTENSIONS: warehouse tasks, leaves, shift changes, sync ================= */
+function ensureV2State(){
+  ensureTelegramBots();
+  state.warehouseTasks = Array.isArray(state.warehouseTasks) ? state.warehouseTasks : [];
+  state.leaves = Array.isArray(state.leaves) ? state.leaves : [];
+  state.shiftChanges = Array.isArray(state.shiftChanges) ? state.shiftChanges : [];
+  state.seasonalAssignments = Array.isArray(state.seasonalAssignments) ? state.seasonalAssignments : [];
+  state.pendingLeaves = Array.isArray(state.pendingLeaves) ? state.pendingLeaves : [];
+  state.leaveBatchId = state.leaveBatchId || null;
+  state.distributionShiftView = (state.distributionShiftView === 'shift_e') ? 'shift_e' : 'shift_m';
+  (state.workers||[]).forEach(w=>{
+    if (w.present === undefined) w.present = true;
+    if (w.shiftId === undefined) w.shiftId = null;
+    if (w.deptKey === undefined) w.deptKey = null;
+  });
+}
+ensureV2State();
+
+function escapeHtml(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+
+/* ================= PASSWORD SECURITY ================= */
+/* كلمات السر مبتتخزنش نص صريح (plaintext) أبدًا. بيتم عمل hash ليها بـ SHA-256 مع salt عشوائي مختلف لكل مستخدم. */
+function genSalt(){
+  const arr = new Uint8Array(16);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function hashPassword(password, salt) {
+  const enc = new TextEncoder();
+  const buf = await crypto.subtle.digest('SHA-256', enc.encode(salt + ':' + password));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function setUserPassword(user, plainPassword) {
+  user.passwordSalt = genSalt();
+  user.passwordHash = await hashPassword(plainPassword, user.passwordSalt);
+  delete user.password; // تأكيد إن مفيش نص صريح فاضل في الكائن
+}
+async function verifyUserPassword(user, plainPassword) {
+  if (!user || !user.passwordHash || !user.passwordSalt) return false;
+  const h = await hashPassword(plainPassword, user.passwordSalt);
+  return h === user.passwordHash;
+}
+/* بيرحّل أي كلمات سر قديمة متخزنة نص صريح (من نسخة سابقة من التطبيق أو من Firestore) لصيغة الـ hash تلقائيًا. */
+async function migratePlaintextPasswords() {
+  let changed = false;
+  for (const u of (state.users || [])) {
+    if (u.password !== undefined && u.password !== null && u.password !== '') {
+      await setUserPassword(u, String(u.password));
+      changed = true;
+    } else if (u.password === '') {
+      delete u.password;
+    }
+  }
+  if (changed) queueSave();
+}
+function currentUser(){return getLoggedInUser()||{};}
+function isAdmin(){return currentUser().role==='admin';}
+function workerById(id){return state.workers.find(w=>w.id===id);}
+function shiftById(id){return state.shifts.find(s=>s.id===id);}
+function daysDiff(a,b){const x=new Date(a),y=new Date(b);return Math.max(0,Math.round((y-x)/86400000)+1);}
+function annualUsed(workerId){const committed=state.leaves.filter(x=>x.workerId===workerId&&x.type==='annual').reduce((n,x)=>n+Number(x.days||0),0);const pending=state.pendingLeaves.filter(x=>x.workerId===workerId&&x.type==='annual').reduce((n,x)=>n+Number(x.days||0),0);return committed+pending;}
+function annualBalance(w){const total=Number(w.annualTotal??21);return Math.max(0,total-annualUsed(w.id));}
+function setAnnualRemaining(workerId,remaining){const w=workerById(workerId);if(!w)return false;const used=annualUsed(workerId);const r=Number(remaining);if(!Number.isFinite(r)||r<0)return false;w.annualTotal=used+r;syncMark('leave_balance_update',{workerId:w.id,name:w.name,code:w.code,used,beforeRemaining:annualBalance(w),remaining:r,annualTotal:w.annualTotal,by:currentUser().name,at:new Date().toISOString()});queueSave();return true;}
+function seasonalLabel(v){return v==='conveyor'?'عمال معدات السيور':v==='dock'?'عمال معدات الرصيف':'غير موزع';}
+function syncMark(type,data){ /* كان يُستخدم لمزامنة Google Sheets، تمت إزالة الربط الخارجي؛ البيانات الآن تُحفظ محليًا وتُصدَّر/تُستورد عبر Excel. */ }
+
+/* Remove old per-worker shift button */
+function renderWorkerCard(w){
+  const shift=shiftById(w.shiftId), dept=DEPARTMENTS.find(d=>d.key===w.deptKey);
+  return `<div class="card worker-card-item" data-name="${escapeHtml(w.name)}" data-code="${escapeHtml(w.code)}">
+    <div class="row"><div><b style="font-size:15px;display:block">${escapeHtml(w.name)}</b><span class="muted">${escapeHtml(w.code)}</span></div><span class="badge ${w.active?'success':'danger'}">${w.active?'🟢 نشط':'🔴 غير نشط'}</span></div>
+    <div style="margin-top:10px;font-size:12.5px;display:grid;grid-template-columns:1fr 1fr;gap:6px"><div>الشفت: <b>${shift?escapeHtml(shift.name):'غير محدد'}</b></div><div>القسم: <b>${dept?escapeHtml(dept.ar):'غير محدد'}</b></div></div>
+    <div style="margin-top:12px;display:flex;gap:6px"><button class="btn btn-secondary btn-sm" style="flex:1" onclick="openEditWorkerModal('${w.id}')">✏️ تعديل</button><button class="btn ${w.active?'btn-danger':'btn-primary'} btn-sm" onclick="toggleWorkerActive('${w.id}')">${w.active?'تعطيل':'تفعيل'}</button></div>
+  </div>`;
+}
+
+function deleteUser(id){
+  const u=state.users.find(x=>x.id===id); if(!u) return;
+  if(id===state.loggedInUserId){toast('لا يمكن حذف الحساب المستخدم حاليًا');return;}
+  if(u.role==='admin' && state.users.filter(x=>x.role==='admin'&&x.active).length<=1){toast('لا يمكن حذف آخر Admin رئيسي');return;}
+  if(confirm('هل أنت متأكد من حذف حساب المسؤول؟')){state.users=state.users.filter(x=>x.id!==id);syncMark('delete_user',{id});queueSave();toast('تم حذف الحساب');renderApp();}
+}
+function renderUsersScreen(){
+ return `<div class="px" style="padding-top:12px"><div class="row" style="margin-bottom:12px"><h3 style="margin:0">🔑 إدارة حسابات المسؤولين</h3><button class="btn btn-primary btn-sm" onclick="openAddUserModal()">➕ إضافة مسؤول</button></div>
+ ${state.users.map(u=>`<div class="card"><div class="row"><div><b>${escapeHtml(u.name)}</b><div class="muted">${escapeHtml(u.username)} • ${u.role==='admin'?'مشرف رئيسي':'مسؤول شفت'}</div></div><span class="badge ${u.active?'success':'danger'}">${u.active?'نشط':'معطل'}</span></div><div style="margin-top:8px;font-size:12px">${u.role==='supervisor'?'الشفت: '+escapeHtml(shiftById(u.shiftId)?.name||'غير محدد'):'صلاحية كاملة'}</div><div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-secondary btn-sm" onclick="openEditUserModal('${u.id}')">✏️ تعديل / كلمة السر</button>${u.role==='supervisor'&&isAdmin()?(()=>{const other=state.shifts.find(s=>s.id!==u.shiftId)||state.shifts.find(s=>s.id!=='shift_e')||state.shifts[0];return `<button class="btn btn-secondary btn-sm" onclick="toggleSupervisorShift('${u.id}')">🔄 نقل إلى ${escapeHtml((other?.icon?other.icon+' ':'')+(other?.name||''))}</button>`;})():''}${u.id!==state.loggedInUserId?`<button class="btn ${u.active?'btn-danger':'btn-primary'} btn-sm" onclick="toggleUserActive('${u.id}')">${u.active?'تعطيل':'تفعيل'}</button><button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}')">🗑️ حذف</button>`:''}</div></div>`).join('')}</div>`;
+}
+function toggleSupervisorShift(userId){
+  if(!isAdmin()) return;
+  const u=state.users.find(x=>x.id===userId);
+  if(!u||u.role!=='supervisor') return;
+  const target=state.shifts.find(s=>s.id!==u.shiftId) || state.shifts[0];
+  if(!target) return;
+  u.shiftId=target.id;
+  syncMark('user_update',u);
+  queueSave();
+  toast(`تم نقل ${u.name} إلى ${target.icon?target.icon+' ':''}${target.name}`);
+  renderApp();
+}
+
+async function compressImage(file,max=1000,quality=.68){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{let w=img.width,h=img.height;const scale=Math.min(1,max/Math.max(w,h));w=Math.round(w*scale);h=Math.round(h*scale);const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);resolve(c.toDataURL('image/jpeg',quality));};img.onerror=reject;img.src=r.result};r.onerror=reject;r.readAsDataURL(file)});}
+function cameraField(id,previewId){return `<input class="input" type="file" accept="image/*" capture="environment" onchange="handlePhotoFile(event,'${previewId}')" id="${id}"><img id="${previewId}" class="photo-preview" style="display:none">`;}
+async function handlePhotoFile(e,previewId){const f=e.target.files?.[0];if(!f)return;try{const data=await compressImage(f);const img=document.getElementById(previewId);img.src=data;img.style.display='block';img.dataset.value=data;}catch(err){toast('تعذر معالجة الصورة، اختر صورة أخرى');}}
+function addWarehouseTask(){if(!isAdmin())return;const shiftOptions=state.shifts.map(sh=>`<option value="${escapeHtml(sh.id)}">${escapeHtml(sh.name)}</option>`).join('');openModal(`<div class="modal-header"><h3 style="margin:0">🏪 إضافة ملاحظة مخزن</h3><button class="icon-btn" onclick="closeModal()">✕</button></div><label class="muted">📷 صورة المشكلة *</label>${cameraField('taskPhoto','taskPhotoPreview')}<label class="muted" style="display:block;margin-top:10px">👷 توجيه إلى الشفت *</label><select class="input" id="taskShift"><option value="">كل مسؤولي الشفتات</option>${shiftOptions}</select><label class="muted" style="display:block;margin-top:10px">📝 الملاحظات *</label><textarea class="input" id="taskNotes" rows="4" required placeholder="اكتب ما يحتاج إصلاحه أو إزالته..."></textarea><button class="btn btn-primary" style="margin-top:14px" onclick="saveWarehouseTask()">حفظ الملاحظة</button>`)}
+function saveWarehouseTask(){const p=document.getElementById('taskPhotoPreview')?.dataset.value||'',n=document.getElementById('taskNotes')?.value.trim()||'',targetShiftId=document.getElementById('taskShift')?.value||'';if(!p){toast('التقط صورة للمشكلة أولًا');return}if(!n){toast('اكتب الملاحظات أولًا');return}const t={id:'TASK-'+Date.now(),photo:p,notes:n,targetShiftId,status:'pending',createdBy:currentUser().name,createdAt:new Date().toISOString(),resolvedBy:'',afterPhoto:'',resolutionNotes:'',failureReason:'',resolvedAt:''};state.warehouseTasks.unshift(t);syncMark('warehouse_create',t);queueSave();closeModal();toast('تم حفظ ملاحظة المخزن');renderApp();}
+function taskStatus(t){return t.status==='resolved'?'<span class="badge success">🟢 تم الحل</span>':t.status==='failed'?'<span class="badge danger">🔴 لم يتم الحل</span>':'<span class="badge warning">🟠 مطلوب التنفيذ</span>';}
+function openWarehouseTask(id){const t=state.warehouseTasks.find(x=>x.id===id);if(!t)return;if(!isAdmin()&&t.targetShiftId&&t.targetShiftId!==currentUser().shiftId)return;if(t.status==='pending'&&!isAdmin()){openModal(`<div class="modal-header"><h3 style="margin:0">🛠️ تنفيذ المهمة</h3><button class="icon-btn" onclick="closeModal()">✕</button></div>${t.photo?`<img class="photo-preview" src="${t.photo}">`:''}<div class="card" style="margin-top:10px">${escapeHtml(t.notes)}</div><div class="grid2"><button class="btn btn-primary" onclick="resolveWarehouseTask('${t.id}')">🟢 تم الحل</button><button class="btn btn-danger" onclick="failWarehouseTask('${t.id}')">🔴 لم يتم الحل</button></div>`);return}openModal(`<div class="modal-header"><h3 style="margin:0">🏪 تفاصيل الملاحظة</h3><button class="icon-btn" onclick="closeModal()">✕</button></div>${t.photo?`<img class="photo-preview" src="${t.photo}">`:''}<p>${escapeHtml(t.notes)}</p><div class="muted">أنشأها: ${escapeHtml(t.createdBy)} • ${new Date(t.createdAt).toLocaleString('ar-EG')}</div><div style="margin-top:10px">${taskStatus(t)}</div>${t.afterPhoto?`<h4>بعد التنفيذ</h4><img class="photo-preview" src="${t.afterPhoto}"><p>${escapeHtml(t.resolutionNotes||'')}</p><div class="muted">المنفذ: ${escapeHtml(t.resolvedBy)} • ${new Date(t.resolvedAt).toLocaleString('ar-EG')}</div>`:''}${t.failureReason?`<div class="card" style="margin-top:10px"><b>سبب عدم الحل:</b><br>${escapeHtml(t.failureReason)}</div>`:''}`);}
+function resolveWarehouseTask(id){openModal(`<div class="modal-header"><h3 style="margin:0">🟢 تم الحل</h3><button class="icon-btn" onclick="closeModal()">✕</button></div><label class="muted">📷 صورة بعد الحل</label>${cameraField('afterPhoto','afterPhotoPreview')}<label class="muted" style="display:block;margin-top:10px">ملاحظات بعد الحل</label><textarea class="input" id="resolutionNotes" rows="3"></textarea><button class="btn btn-primary" style="margin-top:12px" onclick="confirmResolveTask('${id}')">تأكيد تم الحل</button>`)}
+function confirmResolveTask(id){const t=state.warehouseTasks.find(x=>x.id===id),p=document.getElementById('afterPhotoPreview')?.dataset.value||'';if(!t)return;if(!p){toast('التقط صورة بعد الحل أولًا');return}t.status='resolved';t.afterPhoto=p;t.resolutionNotes=document.getElementById('resolutionNotes')?.value.trim()||'';t.resolvedBy=currentUser().name;t.resolvedAt=new Date().toISOString();syncMark('warehouse_resolved',t);queueSave();closeModal();toast('تم تسجيل حل المهمة');renderApp();}
+function failWarehouseTask(id){openModal(`<div class="modal-header"><h3 style="margin:0">🔴 لم يتم الحل</h3><button class="icon-btn" onclick="closeModal()">✕</button></div><label class="muted">سبب عدم الحل *</label><textarea class="input" id="failureReason" rows="4" required></textarea><button class="btn btn-danger" style="margin-top:12px" onclick="confirmFailTask('${id}')">تأكيد عدم الحل</button>`)}
+function confirmFailTask(id){const t=state.warehouseTasks.find(x=>x.id===id),r=document.getElementById('failureReason')?.value.trim();if(!r){toast('اكتب سبب عدم الحل');return}t.status='failed';t.failureReason=r;t.resolvedBy=currentUser().name;t.resolvedAt=new Date().toISOString();syncMark('warehouse_failed',t);queueSave();closeModal();toast('تم تسجيل عدم الحل');renderApp();}
+function deleteWarehouseTask(id, ev){
+  if(ev) ev.stopPropagation();
+  if(!isAdmin()) return;
+  const t=state.warehouseTasks.find(x=>x.id===id);
+  if(!t) return;
+  if(!confirm(`هل تريد حذف الملاحظة: "${t.notes}"؟`)) return;
+  state.warehouseTasks=state.warehouseTasks.filter(x=>x.id!==id);
+  syncMark('warehouse_task_delete',{id});
+  queueSave();
+  toast('تم حذف الملاحظة');
+  renderApp();
+}
+function renderWarehouseScreen(){const mine=isAdmin()?state.warehouseTasks:state.warehouseTasks.filter(t=>(!t.targetShiftId||t.targetShiftId===currentUser().shiftId)&&(t.status!=='resolved'||t.resolvedBy===currentUser().name));return `<div class="px" style="padding-top:12px"><div class="row"><h3 style="margin:0">🏪 ملاحظات المخزن</h3><div style="display:flex;gap:6px;flex-wrap:wrap">${mine.length?'<button class="btn btn-secondary btn-sm" onclick="printWarehouseReport()">🖨️ تقرير</button><button class="btn btn-secondary btn-sm" onclick="exportWarehouseExcel()">📥 Excel</button>':''}${isAdmin()?'<button class="btn btn-primary btn-sm" onclick="addWarehouseTask()">➕ إضافة</button>':''}</div></div><div style="margin-top:12px">${mine.length?mine.map(t=>`<div class="card" onclick="openWarehouseTask('${t.id}')" style="cursor:pointer">${t.photo?`<img class="photo-preview" src="${t.photo}">`:''}<div class="row" style="margin-top:8px"><b>${escapeHtml(t.notes)}</b>${taskStatus(t)}</div><div class="muted" style="margin-top:6px">${escapeHtml(t.createdBy)} • ${new Date(t.createdAt).toLocaleString('ar-EG')}</div>${isAdmin()?`<div style="margin-top:8px;text-align:left"><button class="btn btn-danger btn-sm" onclick="deleteWarehouseTask('${t.id}', event)">🗑️ حذف</button></div>`:''}</div>`).join(''):'<div class="card">لا توجد ملاحظات مخزن.</div>'}</div></div>`}
+
+const LEAVE_DAYS=['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة'];
+function localISO(d){const x=new Date(d);x.setHours(12,0,0,0);return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;}
+function parseLocalISO(v){const [y,m,d]=String(v||'').split('-').map(Number);return new Date(y||2026,(m||1)-1,d||1,12);}
+function weekSaturday(v){const d=parseLocalISO(v||localISO(new Date()));const back=(d.getDay()+1)%7;d.setDate(d.getDate()-back);return d;}
+function leaveWindowDates(startValue){const base=weekSaturday(startValue);return Array.from({length:14},(_,i)=>{const d=new Date(base);d.setDate(base.getDate()+i);return {date:localISO(d),day:LEAVE_DAYS[i%7]};});}
+function leaveDaysHtml(startValue,selected=[]){const sel=new Set((selected||[]).map(x=>typeof x==='string'?x:x.date));return `<div class="leave-week-title">الأسبوع الحالي + الأسبوع التالي</div><div class="leave-calendar-grid">${leaveWindowDates(startValue).map(x=>`<label class="leave-day-card ${sel.has(x.date)?'selected':''}"><span class="leave-day-name">${x.day}</span><span class="leave-day-date">${x.date.split('-').reverse().join('/')}</span><input type="checkbox" class="leaveDay" value="${x.date}" data-day="${x.day}" ${sel.has(x.date)?'checked':''} onchange="syncLeaveStartFromDays()"></label>`).join('')}</div>`;}
+function selectedLeaveDates(){return [...document.querySelectorAll('.leaveDay:checked')].map(x=>({date:x.value,day:x.dataset.day}));}
+function syncLeaveStartFromDays(){const vals=selectedLeaveDates().map(x=>x.date).sort();const input=document.getElementById('leaveStart');if(input&&vals.length)input.value=vals[0];document.querySelectorAll('.leave-day-card').forEach(c=>{const cb=c.querySelector('.leaveDay');c.classList.toggle('selected',!!cb?.checked)});}
+function openLeaveModal(workerId){const w=workerById(workerId);if(!w)return;window._leaveModalWorkerId=workerId;const start=localISO(new Date());openModal(`<div class="modal-header"><h3 style="margin:0">🗓️ إجازة: ${escapeHtml(w.name)}</h3><button class="icon-btn" onclick="closeModal();renderApp()">✕</button></div><div class="muted">${escapeHtml(w.code)} • الرصيد السنوي المتبقي: <b id="leaveBalanceValue">${annualBalance(w)}</b> يوم</div><button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="openBalanceEditModal('${w.id}')">✏️ تعديل الرصيد المتبقي</button><label class="muted" style="display:block;margin-top:10px">نوع الإجازة</label><select class="input" id="leaveType" onchange="updateLeaveForm('${w.id}')"><option value="annual">سنوي</option><option value="sick">مرضي</option><option value="official">بدل رسمي</option></select><div id="leaveDynamic">${leaveFormHtml(w,'annual',start,[])}</div><div class="grid2" style="margin-top:14px"><button class="btn btn-secondary" onclick="saveLeave('${w.id}',true)">💾 حفظ مؤقت</button><button class="btn btn-primary" onclick="saveLeave('${w.id}',false)">✅ حفظ الإجازة</button></div>`);}
+function openBalanceEditModal(workerId){const w=workerById(workerId);if(!w)return;openModal(`<div class="modal-header"><h3 style="margin:0">✏️ تعديل الرصيد: ${escapeHtml(w.name)}</h3><button class="icon-btn" onclick="closeModal()">✕</button></div><div class="muted">الرصيد الحالي: <b>${annualBalance(w)}</b> يوم</div><label class="muted" style="display:block;margin-top:12px">الرصيد المتبقي الجديد</label><input class="input" type="number" min="0" id="newAnnualRemaining" value="${annualBalance(w)}"><button class="btn btn-primary" style="margin-top:12px" onclick="saveAnnualRemaining('${w.id}')">💾 حفظ الرصيد</button>`);}
+function saveAnnualRemaining(workerId){const input=document.getElementById('newAnnualRemaining');const value=Number(input?.value);const w=workerById(workerId);if(!w||!Number.isFinite(value)||value<0){toast('اكتب رصيدًا صحيحًا');return}const before=annualBalance(w);const used=annualUsed(workerId);w.annualTotal=used+value;syncMark('leave_balance_update',{workerId:w.id,name:w.name,code:w.code,beforeRemaining:before,remaining:value,annualTotal:w.annualTotal,used,by:currentUser().name,at:new Date().toISOString()});queueSave();closeModal();toast('تم تعديل الرصيد المتبقي');renderApp();}
+function leaveFormHtml(w,type,startValue,selected){let h='';if(type==='sick'){h+=`<label class="muted" style="display:block;margin-top:10px">عدد أيام المرض</label><input class="input" type="number" id="leaveDays" min="1" value="1"><label class="muted" style="display:block;margin-top:8px">تاريخ بداية الإجازة</label><input class="input" type="date" id="leaveStart" value="${startValue}"><label class="muted" style="display:block;margin-top:8px">تاريخ العودة المتوقع</label><input class="input" type="date" id="leaveReturn">`;}else{h+=leaveDaysHtml(startValue,selected);h+=`<label class="muted" style="display:block;margin-top:12px">تاريخ بداية الإجازة</label><input class="input" type="date" id="leaveStart" value="${startValue}" onchange="refreshLeaveDaysForStart()"><div class="muted" style="margin-top:8px">اختر الأيام من الأسبوع الحالي والأسبوع التالي. سيظهر تاريخ كل يوم فوقه.</div>`;}return h;}
+function updateLeaveForm(workerId){const type=document.getElementById('leaveType').value;const oldSelected=selectedLeaveDates();const start=document.getElementById('leaveStart')?.value||localISO(new Date());document.getElementById('leaveDynamic').innerHTML=leaveFormHtml(workerById(workerId),type,start,oldSelected);}
+function refreshLeaveDaysForStart(){const input=document.getElementById('leaveStart');if(!input)return;const selected=selectedLeaveDates();const first=input.value;document.getElementById('leaveDynamic').innerHTML=leaveFormHtml(workerById(window._leaveModalWorkerId),document.getElementById('leaveType')?.value||'annual',first,selected);}
+function saveLeave(workerId,temporary=false){const w=workerById(workerId),type=document.getElementById('leaveType')?.value;let start=document.getElementById('leaveStart')?.value;let days=0,selected=[];if(!w||!start){toast('حدد تاريخ بداية الإجازة');return}if(type==='sick'){days=Number(document.getElementById('leaveDays')?.value||0);const ret=document.getElementById('leaveReturn')?.value;if(!days||!ret){toast('أكمل بيانات المرضي');return}if(parseLocalISO(ret)<parseLocalISO(start)){toast('تاريخ العودة لا يمكن أن يسبق تاريخ البداية');return}}else{selected=selectedLeaveDates();days=selected.length;if(!days){toast('حدد أيام الإجازة');return}selected.sort((a,b)=>a.date.localeCompare(b.date));start=selected[0].date;}if(type==='annual'&&days>annualBalance(w)){toast('عدد الأيام أكبر من الرصيد المتبقي');return}const before=annualBalance(w),after=type==='annual'?before-days:before;state.leaveBatchId=state.leaveBatchId||('BATCH-'+Date.now()+'-'+Math.random().toString(36).slice(2,7));const l={id:'LEV-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),workerId,name:w.name,code:w.code,type,days,selectedDays:selected,start,end:'',returnDate:type==='sick'?document.getElementById('leaveReturn').value:'',balanceBefore:before,balanceAfter:after,createdBy:currentUser().name,createdAt:new Date().toISOString(),temporary:!!temporary,batchId:state.leaveBatchId};if(temporary){state.pendingLeaves.unshift(l);queueSave();closeModal();toast(`تم الحفظ المؤقت لـ ${w.name}`);}else{state.leaves.unshift(l);syncMark('leave_create',l);queueSave();closeModal();toast('تم تسجيل الإجازة بنجاح');}renderApp();}
+function commitPendingLeaves(){ensureV2State();if(!state.pendingLeaves.length)return [];const pending=[...state.pendingLeaves];pending.forEach(l=>{const clean={...l,temporary:false};delete clean.temporary;state.leaves.unshift(clean);syncMark('leave_create',clean);});state.pendingLeaves=[];queueSave();return pending;}
+function renderLeavesScreen(){const active=state.workers.filter(w=>w.active);const pending=state.pendingLeaves||[];return `<div class="px" style="padding-top:12px"><div class="row"><h3 style="margin:0">🗓️ إجازات العمال</h3><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-secondary btn-sm" onclick="printLeavesReport()">🖨️ طباعة التقرير</button><button class="btn btn-secondary btn-sm" onclick="exportLeavesExcel()">📥 Excel</button></div></div>${pending.length?`<div class="card" style="margin-top:10px;border:1px solid #ff7a36"><b>🟠 محفوظ مؤقتًا: ${pending.length} إجازة</b><div class="muted" style="margin-top:4px">الإجازات المؤقتة ستظهر في التقرير وتُثبت عند طباعة التقرير.</div></div>`:''}<div class="grid2" style="margin-top:10px"><button class="btn btn-secondary btn-sm" onclick="toggleLeaveSelection(true)">☑️ تحديد الكل</button><button class="btn btn-secondary btn-sm" onclick="toggleLeaveSelection(false)">⬜ إلغاء الكل</button></div><input class="input" id="leaveSearch" placeholder="🔍 بحث بالاسم أو الكود" oninput="filterLeaveWorkers()"><div id="leaveWorkers" style="margin-top:10px">${active.map(w=>`<div class="card leave-worker" data-name="${escapeHtml(w.name)}" data-code="${escapeHtml(w.code)}"><div class="row"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" class="leaveSelect" value="${escapeHtml(w.id)}"><span><b>${escapeHtml(w.name)}</b><div class="muted">${escapeHtml(w.code)}</div></span></label><b>${annualBalance(w)} يوم متبقي</b></div><div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-primary btn-sm" style="flex:1" onclick="openLeaveModal('${w.id}')">➕ إعطاء إجازة</button><button class="btn btn-secondary btn-sm" onclick="openBalanceEditModal('${w.id}')">✏️ تعديل الرصيد</button></div></div>`).join('')}</div><h4>آخر الإجازات</h4>${state.leaves.slice(0,30).map(l=>`<div class="card"><div class="row"><b>${escapeHtml(l.name)}</b><span class="badge info">${l.type==='annual'?'سنوي':l.type==='sick'?'مرضي':'بدل رسمي'}</span></div><div class="muted">${l.days} يوم • ${l.start}${l.end?' → '+l.end:''} • ${escapeHtml(l.createdBy)}</div></div>`).join('')}</div>`}
+function toggleLeaveSelection(on){document.querySelectorAll('.leaveSelect').forEach(x=>x.checked=on);}
+function filterLeaveWorkers(){const q=(document.getElementById('leaveSearch')?.value||'').toLowerCase();document.querySelectorAll('.leave-worker').forEach(c=>c.style.display=(c.dataset.name.toLowerCase().includes(q)||c.dataset.code.toLowerCase().includes(q))?'block':'none');}
+
+/* ================= TELEGRAM PHOTO SENDING (for all report/print buttons) ================= */
+async function sendTelegramPhoto(dataUrl, caption){
+  try{
+    const bot=getActiveTelegramBot();
+    if(!bot?.botToken||!bot?.chatId) return false;
+    const blob=await (await fetch(dataUrl)).blob();
+    const fd=new FormData();
+    fd.append('chat_id', bot.chatId);
+    if(caption) fd.append('caption', String(caption).slice(0,1024));
+    fd.append('photo', blob, 'report.png');
+    const res=await fetch(`https://api.telegram.org/bot${bot.botToken}/sendPhoto`, { method:'POST', body:fd });
+    return res.ok;
+  }catch(e){ return false; }
+}
+
+async function shareOrDownload(dataUrl, filename, caption){
+  let telegramOk=false;
+  ensureV2State();
+  if(state.telegram && state.telegram.autoSend && getActiveTelegramBot()){
+    telegramOk = await sendTelegramPhoto(dataUrl, caption||filename||'تقرير');
+  }
+  const doneMsg = telegramOk ? '🖨️ تم إنشاء التقرير وإرساله لبوت Telegram 🟢' : '🖨️ تم إنشاء التقرير';
+  try{
+    const blob=await (await fetch(dataUrl)).blob();
+    const file=new File([blob],(filename||'report')+'.png',{type:'image/png'});
+    if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){
+      try{ await navigator.share({title:filename||'تقرير', files:[file]}); toast(doneMsg); return; }catch(e){}
+    }
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=(filename||'report')+'.png'; a.target='_blank'; a.rel='noopener'; a.style.display='none';
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ a.remove(); URL.revokeObjectURL(url); },3000);
+    toast(doneMsg);
+  }catch(e){
+    try{ window.open(dataUrl,'_blank','noopener'); toast('🖨️ تم فتح التقرير كصورة'); }
+    catch(_){ toast('تعذر إنشاء التقرير', true); }
+  }
+}
+
+async function printLeavesReport(){
+  ensureV2State();
+  const pending=[...(state.pendingLeaves||[])];
+  let selected=[];
+  if(pending.length){
+    selected=commitPendingLeaves();
+  }else{
+    const ids=[...document.querySelectorAll('.leaveSelect:checked')].map(x=>x.value);
+    if(ids.length){
+      const batch=state.leaveBatchId;
+      selected=batch?state.leaves.filter(l=>ids.includes(l.workerId)&&l.batchId===batch):state.leaves.filter(l=>ids.includes(l.workerId)).slice(0,100);
+    }else if(state.leaveBatchId){
+      selected=state.leaves.filter(l=>l.batchId===state.leaveBatchId).slice(0,100);
+    }
+    if(!selected.length){ toast('حدد عاملًا أو احفظ إجازة أولًا'); return; }
+  }
+  await renderLeaveCalendarReport(selected);
+  state.leaveBatchId=null;
+  queueSave();
+  renderApp();
+}
+
+/* Wraps text to fit a given canvas column width, returns an array of lines (max 4). */
+function wrapCanvasText(ctx, text, maxWidth){
+  const str=String(text??'').trim();
+  if(!str) return ['—'];
+  const words=str.split(/\s+/);
+  const lines=[]; let line='';
+  words.forEach(w=>{
+    const test=line?line+' '+w:w;
+    if(ctx.measureText(test).width>maxWidth && line){ lines.push(line); line=w; }
+    else line=test;
+  });
+  if(line) lines.push(line);
+  return lines.slice(0,4);
+}
+
+/* يضمن تحميل خطوط Cairo/Tajawal فعليًا قبل الرسم على الـ canvas، حتى لا يظهر التقرير بخط بديل غير واضح أو بدون النص العربي. */
+async function ensureReportFontsReady(){
+  try{
+    const weights=['500','600','700','800','900'];
+    const sizes=[12,13,14,15,16,17,18,30,38];
+    const jobs=[];
+    sizes.forEach(sz=>{
+      weights.forEach(w=>{
+        jobs.push(document.fonts.load(`${w} ${sz}px Cairo`));
+        jobs.push(document.fonts.load(`${w} ${sz}px Tajawal`));
+      });
+      jobs.push(document.fonts.load(`bold ${sz}px Cairo`));
+      jobs.push(document.fonts.load(`bold ${sz}px Tajawal`));
+      jobs.push(document.fonts.load(`${sz}px Cairo`));
+      jobs.push(document.fonts.load(`${sz}px Tajawal`));
+    });
+    await Promise.all(jobs);
+    if(document.fonts.ready) await document.fonts.ready;
+  }catch(e){ /* في حال فشل تحميل الخطوط، نكمل الرسم بأفضل خط متاح بدل تعليق الطباعة */ }
+}
+
+/* Clean, well-formatted weekly leave calendar report (name column on the right, dates flowing right-to-left). */
+async function renderLeaveCalendarReport(records){
+  await ensureReportFontsReady();
+  const W=1400, labelW=260, gridW=W-labelW, cw=gridW/14;
+  const bannerH=150, bandH=64, rowH=112;
+  const dates=records.flatMap(r=>(r.selectedDays||[]).map(x=>typeof x==='string'?x:x.date)).filter(Boolean).sort();
+  const base=weekSaturday(dates[0]||localISO(new Date()));
+  const win=Array.from({length:14},(_,i)=>{ const d=new Date(base); d.setDate(base.getDate()+i); return { date: localISO(d), day: LEAVE_DAYS[i%7] }; });
+
+  const gridTop=bannerH;
+  const totalH=gridTop+bandH+Math.max(1,records.length)*rowH+46;
+  const dpr=Math.min(window.devicePixelRatio||1,3);
+  const c=document.createElement('canvas');
+  c.width=Math.round(W*dpr); c.height=Math.round(totalH*dpr);
+  c.style.width=W+'px'; c.style.height=totalH+'px';
+  const ctx=c.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.direction='rtl'; ctx.textAlign='center';
+
+  ctx.fillStyle='#F1F4F7'; ctx.fillRect(0,0,W,totalH);
+  ctx.fillStyle='#16222D'; ctx.fillRect(0,0,W,bannerH);
+  ctx.fillStyle='#FF8A4C'; ctx.font='bold 15px Tajawal, Arial';
+  ctx.fillText('SAUDI MARKET • WAREHOUSE OPERATIONS', W/2, 34);
+  ctx.fillStyle='#FFFFFF'; ctx.font='bold 38px Cairo, Arial';
+  ctx.fillText('🗓️ تقرير إجازات العمال', W/2, 82);
+  ctx.fillStyle='#C7D3DB'; ctx.font='17px Tajawal, Arial';
+  ctx.fillText(`تاريخ الإصدار: ${new Date().toLocaleDateString('ar-EG')}  •  إجمالي العمال: ${records.length}`, W/2, 114);
+  ctx.fillStyle='#8FA3AE'; ctx.font='13px Tajawal, Arial';
+  ctx.fillText('الفترة المعروضة: الأسبوع الحالي + الأسبوع القادم', W/2, 136);
+
+  ctx.fillStyle='#EEF3F6'; ctx.fillRect(0,gridTop,W,bandH);
+  ctx.fillStyle='#FCEBDD'; ctx.fillRect(W-labelW,gridTop,labelW,bandH);
+  ctx.strokeStyle='#D8E0E6'; ctx.lineWidth=1; ctx.strokeRect(0,gridTop,W,bandH);
+  ctx.fillStyle='#16222D'; ctx.font='bold 17px Cairo, Arial';
+  ctx.fillText('العامل', W-labelW/2, gridTop+30);
+  ctx.fillStyle='#5C7080'; ctx.font='12px Tajawal, Arial';
+  ctx.fillText('الكود / النوع', W-labelW/2, gridTop+50);
+
+  win.forEach((x,i)=>{
+    const cx=(W-labelW)-i*cw-cw/2;
+    ctx.fillStyle='#16222D'; ctx.font='bold 15px Cairo, Arial';
+    ctx.fillText(x.day, cx, gridTop+27);
+    ctx.fillStyle='#5C7080'; ctx.font='12px Tajawal, Arial';
+    ctx.fillText(x.date.split('-').slice(1).reverse().join('/'), cx, gridTop+48);
+  });
+
+  records.forEach((r,ri)=>{
+    const y=gridTop+bandH+ri*rowH;
+    ctx.fillStyle= ri%2? '#FBFCFD':'#F3F6F8';
+    ctx.fillRect(0,y,W,rowH);
+    ctx.fillStyle='#FFF7F0';
+    ctx.fillRect(W-labelW,y,labelW,rowH);
+
+    ctx.fillStyle='#16222D'; ctx.font='bold 18px Cairo, Arial';
+    ctx.fillText(r.name||'', W-labelW/2, y+42);
+    ctx.fillStyle='#5C7080'; ctx.font='13px Tajawal, Arial';
+    ctx.fillText(r.code||'', W-labelW/2, y+65);
+    ctx.fillStyle='#B8460A'; ctx.font='bold 12px Tajawal, Arial';
+    ctx.fillText(r.type==='annual'?'سنوي':r.type==='sick'?'مرضي':'بدل رسمي', W-labelW/2, y+87);
+
+    const selected=new Set((r.selectedDays||[]).map(x=>typeof x==='string'?x:x.date));
+    win.forEach((x,i)=>{
+      const cx=(W-labelW)-i*cw-cw/2;
+      if(selected.has(x.date)){
+        ctx.fillStyle='#D8F5E4'; ctx.fillRect(cx-cw/2+6, y+14, cw-12, rowH-28);
+        ctx.strokeStyle='#8FDCB2'; ctx.strokeRect(cx-cw/2+6, y+14, cw-12, rowH-28);
+        ctx.fillStyle='#168A4D'; ctx.font='bold 15px Cairo, Arial';
+        ctx.fillText('إجازة', cx, y+rowH/2+6);
+      }else{
+        ctx.fillStyle='#B7C2C9'; ctx.font='16px Arial';
+        ctx.fillText('—', cx, y+rowH/2+6);
+      }
+    });
+  });
+
+  ctx.strokeStyle='#E3E9EE'; ctx.lineWidth=1;
+  const gridBottom=gridTop+bandH+records.length*rowH;
+  for(let i=0;i<=14;i++){ const x=i*cw; ctx.beginPath(); ctx.moveTo(x,gridTop); ctx.lineTo(x,gridBottom); ctx.stroke(); }
+  ctx.beginPath(); ctx.moveTo(W-labelW,gridTop); ctx.lineTo(W-labelW,gridBottom); ctx.stroke();
+  for(let r=0;r<=records.length;r++){ const y=gridTop+bandH+r*rowH; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  ctx.strokeRect(0,gridTop,W,bandH+records.length*rowH);
+
+  ctx.fillStyle='#93A3AF'; ctx.font='12px Tajawal, Arial';
+  ctx.fillText('تم إنشاء هذا التقرير تلقائيًا من تطبيق Saudi Market Warehouse Operations', W/2, totalH-16);
+
+  const data=c.toDataURL('image/png');
+  return shareOrDownload(data,'تقرير-إجازات-العمال','🗓️ تقرير إجازات العمال');
+}
+
+/* Generic clean tabular report used by shift-changes, seasonal, and warehouse reports (headers in RTL order, right = first). */
+async function canvasReport(title, headers, rows, filename){
+  await ensureReportFontsReady();
+  const W=1240, bannerH=140, colHeadH=54, lineH=24, cellPadY=16, minRowH=56;
+  const cols=headers.length;
+  const colW=W/cols;
+  const measure=document.createElement('canvas').getContext('2d');
+  measure.font='15px Tajawal, Arial';
+  const rowLines=rows.map(r=>headers.map((_,ci)=>wrapCanvasText(measure, r[ci], colW-28)));
+  const rowHeights=rowLines.map(lines=>Math.max(minRowH, Math.max(...lines.map(l=>l.length))*lineH+cellPadY*2));
+  const gridTop=bannerH+colHeadH;
+  const totalH=gridTop+rowHeights.reduce((a,b)=>a+b,0)+40;
+
+  const dpr=Math.min(window.devicePixelRatio||1,3);
+  const c=document.createElement('canvas');
+  c.width=Math.round(W*dpr); c.height=Math.round(totalH*dpr);
+  c.style.width=W+'px'; c.style.height=totalH+'px';
+  const ctx=c.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.direction='rtl'; ctx.textAlign='center';
+
+  ctx.fillStyle='#F1F4F7'; ctx.fillRect(0,0,W,totalH);
+  ctx.fillStyle='#16222D'; ctx.fillRect(0,0,W,bannerH);
+  ctx.fillStyle='#FF8A4C'; ctx.font='bold 14px Tajawal, Arial';
+  ctx.fillText('SAUDI MARKET • WAREHOUSE OPERATIONS', W/2, 32);
+  ctx.fillStyle='#FFFFFF'; ctx.font='bold 30px Cairo, Arial';
+  ctx.fillText(title, W/2, 74);
+  ctx.fillStyle='#C7D3DB'; ctx.font='15px Tajawal, Arial';
+  ctx.fillText(`${new Date().toLocaleDateString('ar-EG')}  •  إجمالي السجلات: ${rows.length}`, W/2, 104);
+
+  ctx.fillStyle='#EEF3F6'; ctx.fillRect(0,bannerH,W,colHeadH);
+  ctx.strokeStyle='#7C8B96'; ctx.lineWidth=2; ctx.strokeRect(0,bannerH,W,colHeadH);
+  ctx.fillStyle='#16222D'; ctx.font='bold 16px Cairo, Arial';
+  headers.forEach((h,i)=>{ const cx=W-i*colW-colW/2; ctx.fillText(h, cx, bannerH+34); });
+
+  let y=gridTop;
+  rowLines.forEach((lines,ri)=>{
+    const rh=rowHeights[ri];
+    ctx.fillStyle= ri%2? '#FBFCFD':'#EDF1F4';
+    ctx.fillRect(0,y,W,rh);
+    lines.forEach((cellLines,ci)=>{
+      const cx=W-ci*colW-colW/2;
+      ctx.fillStyle='#16222D'; ctx.font='14px Tajawal, Arial';
+      const blockH=cellLines.length*lineH;
+      let ty=y+rh/2-blockH/2+lineH*0.72;
+      cellLines.forEach(line=>{ ctx.fillText(line, cx, ty); ty+=lineH; });
+    });
+    y+=rh;
+  });
+
+  ctx.strokeStyle='#AEBAC3'; ctx.lineWidth=1.6;
+  const gridBottom=gridTop+rowHeights.reduce((a,b)=>a+b,0);
+  for(let i=0;i<=cols;i++){ const x=i*colW; ctx.beginPath(); ctx.moveTo(x,bannerH); ctx.lineTo(x,gridBottom); ctx.stroke(); }
+  let ly=gridTop;
+  rowHeights.forEach(rh=>{ ctx.beginPath(); ctx.moveTo(0,ly); ctx.lineTo(W,ly); ctx.stroke(); ly+=rh; });
+  ctx.beginPath(); ctx.moveTo(0,ly); ctx.lineTo(W,ly); ctx.stroke();
+  ctx.strokeStyle='#7C8B96'; ctx.lineWidth=2.2;
+  ctx.strokeRect(0,bannerH,W,colHeadH+rowHeights.reduce((a,b)=>a+b,0));
+
+  ctx.fillStyle='#93A3AF'; ctx.font='11.5px Tajawal, Arial';
+  ctx.fillText('تم إنشاء هذا التقرير تلقائيًا من تطبيق Saudi Market Warehouse Operations', W/2, totalH-16);
+
+  const data=c.toDataURL('image/png');
+  return shareOrDownload(data, filename, title);
+}
+
+function printShiftChangesReport(){
+  const latestBatch=state.shiftChanges[0]?.batchId;
+  const source=latestBatch? state.shiftChanges.filter(x=>x.batchId===latestBatch) : state.shiftChanges.slice(0,50);
+  const rows=source.slice(0,100).map(x=>[x.name,x.code,shiftById(x.oldShift)?.name||'—',shiftById(x.newShift)?.name||'—']);
+  if(!rows.length){ toast('لا توجد تغييرات شفت مسجلة'); return; }
+  canvasReport('🔄 تقرير تغييرات الشفتات', ['العامل','الكود','الشفت القديم','الشفت الجديد'], rows, 'تقرير-تغيير-الشفتات');
+}
+
+function printAllShiftChangesReport(){
+  const source=state.shiftChanges;
+  const rows=source.slice(0,300).map(x=>[x.name,x.code,shiftById(x.oldShift)?.name||'—',shiftById(x.newShift)?.name||'—',x.by||'—',x.at||'—']);
+  if(!rows.length){ toast('لا توجد تغييرات شفت مسجلة'); return; }
+  canvasReport('🔄 تقرير كل تغييرات الشفتات', ['العامل','الكود','من','إلى','بواسطة','التاريخ'], rows, 'تقرير-كل-تغييرات-الشفتات');
+}
+
+function printSeasonalReport(){
+  const workers=state.workers.filter(w=>w.active);
+  const rows=workers.map(w=>{
+    const cat=w.seasonalCategory||state.seasonalAssignments.find(a=>a.workerId===w.id)?.category||'';
+    if(!cat) return null; /* غير موزع: لا يظهر في التقرير */
+    return [w.name, w.code, seasonalLabel(cat), shiftById(w.shiftId)?.name||'—'];
+  }).filter(Boolean);
+  if(!rows.length){ toast('لا توجد بيانات عمال موزعين للتقرير'); return; }
+  canvasReport('📋 تقرير توزيع العمال الموسمي', ['العامل','الكود','التوزيع','الشفت'], rows, 'تقرير-الموسمي');
+}
+
+function printWarehouseReport(){
+  const mine=isAdmin()? state.warehouseTasks : state.warehouseTasks.filter(t=>(!t.targetShiftId||t.targetShiftId===currentUser().shiftId)&&(t.status!=='resolved'||t.resolvedBy===currentUser().name));
+  const rows=mine.slice(0,100).map(t=>[t.notes||'—', t.status==='resolved'?'تم الحل':t.status==='failed'?'لم يتم الحل':'مطلوب التنفيذ', t.createdBy||'—', t.resolvedBy||'—', new Date(t.createdAt).toLocaleDateString('ar-EG')]);
+  if(!rows.length){ toast('لا توجد ملاحظات مخزن للتقرير'); return; }
+  canvasReport('🏪 تقرير ملاحظات المخزن', ['الملاحظة','الحالة','أنشأها','المنفذ','التاريخ'], rows, 'تقرير-ملاحظات-المخزن');
+}
+
+/* ================= زر "تصدير Excel" بجانب كل زر طباعة تقرير ================= */
+/* يحسب عرض كل عمود حسب أطول محتوى فيه، حتى لا يتداخل النص العربي أو يُقطع. */
+function autoFitExcelCols(aoa){
+  const colCount = aoa.reduce((m,r)=>Math.max(m,r.length),0);
+  const widths = new Array(colCount).fill(10);
+  aoa.forEach(row=>{
+    row.forEach((cell,i)=>{
+      const len = String(cell??'').length;
+      widths[i] = Math.max(widths[i], Math.min(48, len + 6));
+    });
+  });
+  return widths.map(w=>({wch:w}));
+}
+
+/* يبني ملف Excel من صفوف بيانات + عناوين عربية، بضبط اتجاه الشيت RTL وعرض الأعمدة تلقائيًا. */
+function exportRowsToExcel(sheetName, headers, rows, filename){
+  if(!excelReady()) return;
+  try{
+    const aoa=[headers, ...rows.map(r=>r.map(v=>(v===undefined||v===null)?'':v))];
+    const ws=XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols']=autoFitExcelCols(aoa);
+    ws['!rows']=[{hpx:26}];
+    /* محاذاة النصوص لليمين وخط أوضح لعناوين الأعمدة، إن كانت النسخة المستخدمة من المكتبة تدعم الأنماط. */
+    try{
+      const range=XLSX.utils.decode_range(ws['!ref']);
+      for(let R=range.s.r; R<=range.e.r; R++){
+        for(let C=range.s.c; C<=range.e.c; C++){
+          const ref=XLSX.utils.encode_cell({r:R,c:C});
+          if(!ws[ref]) continue;
+          ws[ref].s = {
+            alignment:{ horizontal:'right', vertical:'center', wrapText:true, readingOrder:2 },
+            font: R===0 ? { name:'Arial', sz:12, bold:true } : { name:'Arial', sz:11 }
+          };
+        }
+      }
+    }catch(e){}
+    const wb=XLSX.utils.book_new();
+    wb.Workbook = wb.Workbook || {};
+    wb.Workbook.Views = [{ RTL:true }];
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    XLSX.writeFile(wb, filename, { cellStyles:true });
+    toast('🟢 تم تصدير Excel بنجاح');
+  }catch(e){ toast('🔴 تعذر تصدير Excel'+(e&&e.message?': '+e.message:'')); }
+}
+
+function exportLeavesExcel(){
+  ensureV2State();
+  const pending=[...(state.pendingLeaves||[])];
+  let selected=[];
+  if(pending.length){
+    selected=commitPendingLeaves();
+  }else{
+    const ids=[...document.querySelectorAll('.leaveSelect:checked')].map(x=>x.value);
+    if(ids.length){
+      const batch=state.leaveBatchId;
+      selected=batch?state.leaves.filter(l=>ids.includes(l.workerId)&&l.batchId===batch):state.leaves.filter(l=>ids.includes(l.workerId)).slice(0,100);
+    }else if(state.leaveBatchId){
+      selected=state.leaves.filter(l=>l.batchId===state.leaveBatchId).slice(0,100);
+    }
+    if(!selected.length){ toast('حدد عاملًا أو احفظ إجازة أولًا'); return; }
+  }
+  const rows=selected.map(r=>{
+    const days=(r.selectedDays||[]).map(x=>typeof x==='string'?x:x.date).filter(Boolean).sort();
+    const daysStr = days.length ? days.map(d=>d.split('-').reverse().join('/')).join('، ') : (r.start?r.start.split('-').reverse().join('/'):'');
+    return [r.name||'', r.code||'', r.type==='annual'?'سنوي':r.type==='sick'?'مرضي':'بدل رسمي', r.days||0, daysStr];
+  });
+  exportRowsToExcel('إجازات العمال', ['العامل','الكود','نوع الإجازة','عدد الأيام','الأيام المحددة'], rows, `تقرير-إجازات-العمال-${new Date().toISOString().slice(0,10)}.xlsx`);
+  state.leaveBatchId=null;
+  queueSave();
+  renderApp();
+}
+
+function exportShiftChangesExcel(){
+  const latestBatch=state.shiftChanges[0]?.batchId;
+  const source=latestBatch? state.shiftChanges.filter(x=>x.batchId===latestBatch) : state.shiftChanges.slice(0,50);
+  const rows=source.slice(0,100).map(x=>[x.name,x.code,shiftById(x.oldShift)?.name||'—',shiftById(x.newShift)?.name||'—']);
+  if(!rows.length){ toast('لا توجد تغييرات شفت مسجلة'); return; }
+  exportRowsToExcel('تغييرات الشفتات', ['العامل','الكود','الشفت القديم','الشفت الجديد'], rows, `تقرير-تغيير-الشفتات-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function exportAllShiftChangesExcel(){
+  const source=state.shiftChanges;
+  const rows=source.slice(0,300).map(x=>[x.name,x.code,shiftById(x.oldShift)?.name||'—',shiftById(x.newShift)?.name||'—',x.by||'—',x.at||'—']);
+  if(!rows.length){ toast('لا توجد تغييرات شفت مسجلة'); return; }
+  exportRowsToExcel('كل تغييرات الشفتات', ['العامل','الكود','من','إلى','بواسطة','التاريخ'], rows, `تقرير-كل-تغييرات-الشفتات-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function exportSeasonalExcel(){
+  const workers=state.workers.filter(w=>w.active);
+  const rows=workers.map(w=>{
+    const cat=w.seasonalCategory||state.seasonalAssignments.find(a=>a.workerId===w.id)?.category||'';
+    if(!cat) return null; /* غير موزع: لا يظهر في التصدير */
+    return [w.name, w.code, seasonalLabel(cat), shiftById(w.shiftId)?.name||'—'];
+  }).filter(Boolean);
+  if(!rows.length){ toast('لا توجد بيانات عمال موزعين للتصدير'); return; }
+  exportRowsToExcel('التوزيع الموسمي', ['العامل','الكود','التوزيع','الشفت'], rows, `تقرير-الموسمي-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function exportWarehouseExcel(){
+  const mine=isAdmin()? state.warehouseTasks : state.warehouseTasks.filter(t=>(!t.targetShiftId||t.targetShiftId===currentUser().shiftId)&&(t.status!=='resolved'||t.resolvedBy===currentUser().name));
+  const rows=mine.slice(0,100).map(t=>[t.notes||'—', t.status==='resolved'?'تم الحل':t.status==='failed'?'لم يتم الحل':'مطلوب التنفيذ', t.createdBy||'—', t.resolvedBy||'—', new Date(t.createdAt).toLocaleDateString('ar-EG')]);
+  if(!rows.length){ toast('لا توجد ملاحظات مخزن للتصدير'); return; }
+  exportRowsToExcel('ملاحظات المخزن', ['الملاحظة','الحالة','أنشأها','المنفذ','التاريخ'], rows, `تقرير-ملاحظات-المخزن-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+/* ================= SHIFT CHANGES SCREEN (previously missing — this is why the screen wouldn't open) ================= */
+let _shiftChangeSelections = {};
+function openShiftChangesScreen(){
+  ensureV2State();
+  _shiftChangeSelections = {};
+  state.workers.filter(w=>w.active).forEach(w=>{ _shiftChangeSelections[w.id] = w.shiftId || null; });
+  setScreen('shiftChanges');
+}
+function setWorkerShiftSelection(workerId, shiftId){
+  _shiftChangeSelections[workerId] = shiftId;
+  renderApp();
+}
+function renderShiftChangesScreen(){
+  const active=state.workers.filter(w=>w.active);
+  active.forEach(w=>{ if(!(w.id in _shiftChangeSelections)) _shiftChangeSelections[w.id]=w.shiftId||null; });
+  const shiftM = state.shifts.find(s=>s.id==='shift_m') || state.shifts[0];
+  const shiftE = state.shifts.find(s=>s.id==='shift_e') || state.shifts[1];
+  const changedCount = active.filter(w => _shiftChangeSelections[w.id] && _shiftChangeSelections[w.id] !== w.shiftId).length;
+  const recent=state.shiftChanges.slice(0,20);
+  return `<div class="px" style="padding-top:12px">
+    <div class="row"><h3 style="margin:0">🔄 تغيير الشفتات</h3><div style="display:flex;gap:6px;flex-wrap:wrap">${state.shiftChanges.length?'<button class="btn btn-secondary btn-sm" onclick="printShiftChangesReport()">🖨️ تقرير</button><button class="btn btn-secondary btn-sm" onclick="exportShiftChangesExcel()">📥 Excel</button><button class="btn btn-secondary btn-sm" onclick="printAllShiftChangesReport()">🖨️ طباعة الكل</button><button class="btn btn-secondary btn-sm" onclick="exportAllShiftChangesExcel()">📥 Excel الكل</button>':''}</div></div>
+    <div class="muted" style="margin-top:6px">اختر لكل عامل الشفت الجديد، ثم اضغط زر التنفيذ في الأسفل لتطبيق كل التغييرات دفعة واحدة.</div>
+    <input class="input" id="shiftChangeSearch" placeholder="🔍 بحث بالاسم أو الكود" oninput="filterShiftChangeWorkers()" style="margin-top:10px">
+    <div id="shiftChangeWorkers" style="margin-top:10px;max-height:420px;overflow-y:auto">
+      ${active.map(w=>{
+        const sel=_shiftChangeSelections[w.id];
+        return `<div class="card shift-change-worker" style="margin-bottom:8px" data-name="${escapeHtml(w.name)}" data-code="${escapeHtml(w.code)}">
+          <div><b>${escapeHtml(w.name)}</b><div class="muted">${escapeHtml(w.code)}${sel!==w.shiftId?` • <span style="color:var(--accent);font-weight:700">سيتم النقل</span>`:''}</div></div>
+          <div class="grid2" style="margin-top:8px">
+            <button class="btn ${sel===shiftM?.id?'btn-primary':'btn-secondary'} btn-sm" onclick="setWorkerShiftSelection('${w.id}','${shiftM?.id}')">☀️ صباحي</button>
+            <button class="btn ${sel===shiftE?.id?'btn-primary':'btn-secondary'} btn-sm" onclick="setWorkerShiftSelection('${w.id}','${shiftE?.id}')">🌙 مسائي</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    <button class="btn btn-primary" style="margin-top:12px" onclick="saveShiftChanges()">✅ تنفيذ تغيير الشفت${changedCount?` (${changedCount})`:''}</button>
+    <h4>آخر التغييرات</h4>
+    ${recent.length? recent.map(x=>`<div class="card"><div class="row"><b>${escapeHtml(x.name)}</b><span class="muted">${escapeHtml(x.code)}</span></div><div class="muted" style="margin-top:4px">${escapeHtml(shiftById(x.oldShift)?.name||'—')} ← ${escapeHtml(shiftById(x.newShift)?.name||'—')} • ${escapeHtml(x.by||'')} • ${escapeHtml(x.at||'')}</div></div>`).join(''):'<div class="card">لا توجد تغييرات مسجلة بعد.</div>'}
+  </div>`;
+}
+function filterShiftChangeWorkers(){
+  const q=(document.getElementById('shiftChangeSearch')?.value||'').toLowerCase();
+  document.querySelectorAll('.shift-change-worker').forEach(c=>{ c.style.display=(c.dataset.name.toLowerCase().includes(q)||c.dataset.code.toLowerCase().includes(q))?'block':'none'; });
+}
+function saveShiftChanges(){
+  const active=state.workers.filter(w=>w.active);
+  const batchId='SC-'+Date.now();
+  const at=new Date().toLocaleString('ar-EG');
+  let moved=0;
+  active.forEach(w=>{
+    const target=_shiftChangeSelections[w.id];
+    if(!target||target===w.shiftId) return;
+    const rec={ id:'SFT-'+Date.now()+'-'+Math.random().toString(36).slice(2,7), name:w.name, code:w.code, oldShift:w.shiftId, newShift:target, by:currentUser().name, at, batchId };
+    state.shiftChanges.unshift(rec);
+    w.shiftId=target;
+    syncMark('shift_change', rec);
+    moved++;
+  });
+  if(!moved){ toast('لا يوجد تغييرات محددة للتنفيذ'); return; }
+  queueSave();
+  toast(`✅ تم تغيير شفت ${moved} عامل بنجاح`);
+  active.forEach(w=>{ _shiftChangeSelections[w.id]=w.shiftId; });
+  renderApp();
+}
+
+/* ================= DEPARTMENT DISTRIBUTION SCREEN (توزيع الأقسام) ================= */
+function distributionShift(){
+  ensureV2State();
+  return state.distributionShiftView === 'shift_e' ? 'shift_e' : 'shift_m';
+}
+function setDistributionShift(shiftId){
+  ensureV2State();
+  state.distributionShiftView = shiftId;
+  queueSave();
+  renderApp();
+}
+function togglePresence(workerId){
+  const w=workerById(workerId); if(!w) return;
+  w.present = !(w.present !== false);
+  if(!w.present){
+    // غائب: يُزال فورًا من أي قسم
+    w.deptKey = null;
+  }
+  syncMark('worker_presence', {workerId:w.id, name:w.name, code:w.code, present:w.present, by:currentUser().name, at:new Date().toLocaleString('ar-EG')});
+  queueSave();
+  toast(w.present ? `🟢 ${w.name} حاضر الآن` : `🔴 تم تسجيل غياب ${w.name}`);
+  renderApp();
+}
+function assignWorkerToDept(workerId, deptKey){
+  const w=workerById(workerId); if(!w) return;
+  const shiftId = distributionShift();
+  w.shiftId = shiftId; // لو كان بدون شفت، يتحدد حسب التبويب الحالي
+  w.deptKey = deptKey;
+  syncMark('worker_dept_assign', {workerId:w.id, name:w.name, code:w.code, deptKey, shiftId, by:currentUser().name, at:new Date().toLocaleString('ar-EG')});
+  queueSave();
+  toast(`تم توزيع ${w.name}`);
+  renderApp();
+}
+function unassignWorkerFromDept(workerId){
+  const w=workerById(workerId); if(!w) return;
+  w.deptKey = null;
+  syncMark('worker_dept_unassign', {workerId:w.id, name:w.name, code:w.code, by:currentUser().name, at:new Date().toLocaleString('ar-EG')});
+  queueSave();
+  toast(`تم إلغاء توزيع ${w.name}`);
+  renderApp();
+}
+function renderDistributionScreen(){
+  const shiftId = distributionShift();
+  const shiftM = state.shifts.find(s=>s.id==='shift_m') || state.shifts[0];
+  const shiftE = state.shifts.find(s=>s.id==='shift_e') || state.shifts[1];
+  const shift = shiftId==='shift_e' ? shiftE : shiftM;
+
+  // العمال الحاضرون النشطون التابعون لهذا الشفت (أو بدون شفت بعد لم يوزعوا)
+  const eligible = state.workers.filter(w => w.active && w.present !== false && (w.shiftId === shiftId || !w.shiftId));
+  const unassigned = eligible.filter(w => !w.deptKey);
+
+  const absentActive = state.workers.filter(w => w.active && w.present === false && (w.shiftId === shiftId));
+
+  return `<div class="px" style="padding-top:12px">
+    <h3 style="margin:0 0 12px">🧩 توزيع الأقسام</h3>
+
+    <div class="card">
+      <b>👷 العمال المتواجدون في الشيفت</b>
+      <div class="grid2" style="margin-top:10px">
+        <button class="btn ${shiftId==='shift_m'?'btn-primary':'btn-secondary'} btn-sm" onclick="setDistributionShift('shift_m')">☀️ ${escapeHtml(shiftM?.name||'الصباحي')}</button>
+        <button class="btn ${shiftId==='shift_e'?'btn-primary':'btn-secondary'} btn-sm" onclick="setDistributionShift('shift_e')">🌙 ${escapeHtml(shiftE?.name||'المسائي')}</button>
+      </div>
+
+      <div class="muted" style="margin-top:12px">غير موزعين (${unassigned.length})</div>
+      <div id="unassignedWorkers" style="margin-top:8px">
+        ${unassigned.length? unassigned.map(w=>`
+          <div class="card" style="margin-bottom:8px;padding:10px">
+            <div class="row"><div><b>${escapeHtml(w.name)}</b><div class="muted">${escapeHtml(w.code)}</div></div>
+              <button class="btn btn-secondary btn-sm" onclick="togglePresence('${w.id}')">🔴 غياب</button>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+              ${DEPARTMENTS.map(d=>`<button class="btn btn-secondary btn-sm" style="flex:1 1 45%;font-size:11.5px" onclick="assignWorkerToDept('${w.id}','${d.key}')">${d.ar}</button>`).join('')}
+            </div>
+          </div>`).join('') : '<div class="muted">لا يوجد عمال غير موزعين حاليًا في هذا الشفت.</div>'}
+      </div>
+      ${absentActive.length? `<div class="muted" style="margin-top:14px">غائبون حاليًا (${absentActive.length})</div>${absentActive.map(w=>`<div class="row" style="padding:8px 0;border-bottom:1px solid var(--border)"><span><b>${escapeHtml(w.name)}</b> <span class="muted">${escapeHtml(w.code)}</span></span><button class="btn btn-primary btn-sm" onclick="togglePresence('${w.id}')">🟢 حاضر</button></div>`).join('')}` : ''}
+    </div>
+
+    ${DEPARTMENTS.map(d=>{
+      const list = state.workers.filter(w => w.active && w.present !== false && w.shiftId === shiftId && w.deptKey === d.key);
+      return `<div class="card">
+        <div class="row"><b>${d.ar}</b><span class="badge info">${list.length}</span></div>
+        <div style="margin-top:8px">
+          ${list.length? list.map(w=>`
+            <div class="row" style="padding:8px 0;border-bottom:1px solid var(--border)">
+              <span><b>${escapeHtml(w.name)}</b> <span class="muted">${escapeHtml(w.code)}</span></span>
+              <div style="display:flex;gap:6px;align-items:center">
+                <select class="input" style="width:auto;padding:6px 8px;font-size:12px;margin-top:0" onchange="assignWorkerToDept('${w.id}', this.value)">
+                  ${DEPARTMENTS.map(d2=>`<option value="${d2.key}" ${d2.key===d.key?'selected':''}>${d2.ar}</option>`).join('')}
+                </select>
+                <button class="btn btn-secondary btn-sm" onclick="unassignWorkerFromDept('${w.id}')">↩️ إلغاء</button>
+              </div>
+            </div>`).join('') : '<div class="muted">لا يوجد عمال في هذا القسم بعد.</div>'}
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+/* ================= SEASONAL SCREEN (previously missing — this is why the screen wouldn't open) ================= */
+function renderSeasonalScreen(){
+  const active=state.workers.filter(w=>w.active);
+  return `<div class="px" style="padding-top:12px">
+    <div class="row"><h3 style="margin:0">📋 التوزيع الموسمي</h3><div style="display:flex;gap:6px;flex-wrap:wrap">${active.length?'<button class="btn btn-secondary btn-sm" onclick="printSeasonalReport()">🖨️ تقرير</button><button class="btn btn-secondary btn-sm" onclick="exportSeasonalExcel()">📥 Excel</button>':''}</div></div>
+    <input class="input" id="seasonalSearch" placeholder="🔍 بحث بالاسم أو الكود" oninput="filterSeasonalWorkers()" style="margin-top:10px">
+    <div id="seasonalWorkers" style="margin-top:10px">
+      ${active.map(w=>{
+        const cur=w.seasonalCategory||state.seasonalAssignments.find(a=>a.workerId===w.id)?.category||'';
+        return `<div class="card seasonal-worker" data-name="${escapeHtml(w.name)}" data-code="${escapeHtml(w.code)}">
+          <div class="row"><div><b>${escapeHtml(w.name)}</b><div class="muted">${escapeHtml(w.code)} • ${escapeHtml(shiftById(w.shiftId)?.name||'')}</div></div></div>
+          <select class="input seasonalSelect" data-worker="${escapeHtml(w.id)}" style="margin-top:8px">
+            <option value="" ${!cur?'selected':''}>غير موزع</option>
+            <option value="conveyor" ${cur==='conveyor'?'selected':''}>عمال معدات السيور</option>
+            <option value="dock" ${cur==='dock'?'selected':''}>عمال معدات الرصيف</option>
+          </select>
+        </div>`;
+      }).join('')}
+    </div>
+    <button class="btn btn-primary" style="margin-top:12px" onclick="saveSeasonalAssignments()">💾 حفظ التوزيع</button>
+  </div>`;
+}
+function filterSeasonalWorkers(){
+  const q=(document.getElementById('seasonalSearch')?.value||'').toLowerCase();
+  document.querySelectorAll('.seasonal-worker').forEach(c=>{ c.style.display=(c.dataset.name.toLowerCase().includes(q)||c.dataset.code.toLowerCase().includes(q))?'block':'none'; });
+}
+function saveSeasonalAssignments(){
+  const selects=[...document.querySelectorAll('.seasonalSelect')];
+  const at=new Date().toLocaleString('ar-EG');
+  let changed=0;
+  selects.forEach(sel=>{
+    const w=workerById(sel.dataset.worker); if(!w) return;
+    const val=sel.value;
+    if((w.seasonalCategory||'')===val) return;
+    w.seasonalCategory=val;
+    const idx=state.seasonalAssignments.findIndex(a=>a.workerId===w.id);
+    if(val){
+      const rec={ workerId:w.id, name:w.name, code:w.code, category:val, by:currentUser().name, at };
+      if(idx>=0) state.seasonalAssignments[idx]=rec; else state.seasonalAssignments.unshift(rec);
+      syncMark('seasonal_assign', rec);
+    }else{
+      /* غير موزع: يُحذف من قائمة التوزيع فلا يظهر في الشيت أو التقرير */
+      if(idx>=0) state.seasonalAssignments.splice(idx,1);
+      syncMark('seasonal_unassign', { workerId:w.id, name:w.name, code:w.code, by:currentUser().name, at });
+    }
+    changed++;
+  });
+  if(!changed){ toast('لا يوجد تغييرات لحفظها'); return; }
+  queueSave();
+  toast(`تم حفظ توزيع ${changed} عامل`);
+  renderApp();
+}
+
+/* ================= EXCEL EXPORT / IMPORT (حل محل ربط Google Sheets) ================= */
+function excelSafeObj(v){ return (v && typeof v==='object') ? JSON.stringify(v) : ''; }
+function excelSafeArr(v){ return Array.isArray(v) ? JSON.stringify(v) : ''; }
+
+/* يضبط عرض الأعمدة تلقائيًا حسب طول المحتوى، يجمّد صف العناوين، يخلي اتجاه الشيت RTL، وينسّق صف العناوين بخط غامق وخلفية لونية عشان يبقى واضح وسهل القراءة. */
+function styleSheet(ws, rows){
+  if(!ws || !ws['!ref']) return;
+  const keys = rows && rows.length ? Object.keys(rows[0]) : [];
+  if(!keys.length) return;
+  ws['!cols'] = keys.map(k=>{
+    let maxLen = String(k).length;
+    rows.forEach(r=>{ const v=r[k]; const len = v==null? 0 : String(v).length; if(len>maxLen) maxLen=len; });
+    return { wch: Math.min(Math.max(maxLen+3, 11), 45) };
+  });
+  ws['!rows'] = [{ hpt: 24 }];
+  ws['!views'] = [{ rightToLeft:true, state:'frozen', ySplit:1, topLeftCell:'A2' }];
+  try{
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for(let C=range.s.c; C<=range.e.c; C++){
+      const addr = XLSX.utils.encode_cell({ r:0, c:C });
+      if(ws[addr]){
+        ws[addr].s = {
+          font:{ bold:true, sz:12, color:{ rgb:'FFFFFF' } },
+          fill:{ fgColor:{ rgb:'FF6A1A' } },
+          alignment:{ horizontal:'center', vertical:'center' }
+        };
+      }
+    }
+  }catch(e){ /* التنسيق الشكلي اختياري، لو فشل نكمل تصدير البيانات عادي */ }
+}
+
+function buildExportWorkbook(){
+  const wb = XLSX.utils.book_new();
+  const addSheet=(name, rows)=>{
+    const safeRows = rows && rows.length ? rows : [{}];
+    const ws=XLSX.utils.json_to_sheet(safeRows);
+    styleSheet(ws, safeRows);
+    XLSX.utils.book_append_sheet(wb, ws, name);
+  };
+
+  addSheet('Workers', state.workers.map(w=>({
+    id:w.id, name:w.name, code:w.code, shiftId:w.shiftId||'', shiftName: shiftById(w.shiftId)?.name||'', deptKey:w.deptKey||'',
+    active: !!w.active, present: !!w.present, annualTotal: w.annualTotal??'', seasonalCategory: w.seasonalCategory||''
+  })));
+
+  // ملاحظة: username/password بيتصدروا فاضيين قصدًا لحماية بيانات الدخول. الاستيراد بيحافظ على القيم القديمة تلقائيًا لو الخانة فاضية،
+  // ولو حبيت تغيّر يوزر/باسورد حد موجود اكتب القيمة الجديدة في الخانة، ولو بتضيف مستخدم جديد لازم تملأ الخانتين.
+  addSheet('Users', state.users.map(u=>({
+    id:u.id, name:u.name, username:'', password:'', role:u.role, shiftId:u.shiftId||'', active: !!u.active, temporary: !!u.temporary
+  })));
+
+  addSheet('Shifts', state.shifts.map(s=>({
+    id:s.id, name:s.name, startTime:s.startTime, endTime:s.endTime, icon:s.icon||'', supervisorId:s.supervisorId||''
+  })));
+
+  addSheet('Reports', state.reports.map(r=>({
+    id:r.id, date:r.date, dateISO:r.dateISO||'', shiftId:r.shiftId||'', shiftName:r.shiftName, shiftTimes:r.shiftTimes||'', supervisor:r.supervisor, workersCount:r.workersCount,
+    truckCount:(r.ops&&r.ops.truckCount)||'', status:(r.ops&&r.ops.status)||'', notes:(r.ops&&r.ops.notes)||'', issues:(r.ops&&r.ops.issues)||'',
+    telegramSent: !!r.telegramSent, attendanceJSON: excelSafeObj(r.attendance), departmentsJSON: excelSafeObj(r.departments)
+  })));
+
+  addSheet('Leaves', state.leaves.map(l=>({
+    id:l.id, workerId:l.workerId, name:l.name, code:l.code, type:l.type, days:l.days, start:l.start, end:l.end||'', returnDate:l.returnDate||'',
+    balanceBefore:l.balanceBefore??'', balanceAfter:l.balanceAfter??'', createdBy:l.createdBy, createdAt:l.createdAt, batchId:l.batchId||'',
+    selectedDaysJSON: excelSafeArr(l.selectedDays)
+  })));
+
+  addSheet('ShiftChanges', state.shiftChanges.map(x=>({
+    id:x.id, name:x.name, code:x.code, oldShift:x.oldShift||'', newShift:x.newShift||'', by:x.by||'', at:x.at||'', batchId:x.batchId||''
+  })));
+
+  addSheet('SeasonalAssignments', state.seasonalAssignments.map(a=>({
+    workerId:a.workerId, name:a.name||'', code:a.code||'', category:a.category||'', by:a.by||'', at:a.at||''
+  })));
+
+  addSheet('WarehouseTasks', (state.warehouseTasks||[]).map(t=>({
+    id:t.id, notes:t.notes||'', status:t.status||'pending', targetShiftId:t.targetShiftId||'', createdBy:t.createdBy||'', createdAt:t.createdAt||'',
+    resolvedBy:t.resolvedBy||'', resolvedAt:t.resolvedAt||'', resolutionNotes:t.resolutionNotes||'', failureReason:t.failureReason||''
+  })));
+
+  return wb;
+}
+
+function excelReady(){
+  if(typeof XLSX==='undefined'){ toast('🔴 تعذر تحميل مكتبة Excel، تأكد من الاتصال بالإنترنت وحاول مرة أخرى'); return false; }
+  return true;
+}
+
+function exportToExcel(){
+  if(!excelReady()) return;
+  try{
+    ensureV2State();
+    const wb=buildExportWorkbook();
+    const stamp=new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, `مخزن-سعودي-ماركت-${stamp}.xlsx`, { cellStyles:true });
+    toast('🟢 تم تصدير ملف Excel بنجاح');
+  }catch(e){ toast('🔴 تعذر تصدير Excel'+(e&&e.message?': '+e.message:'')); }
+}
+
+function triggerExcelImport(){ document.getElementById('excelImportInput')?.click(); }
+
+async function handleExcelImportFile(fileInput){
+  const file=fileInput.files && fileInput.files[0];
+  if(!file) return;
+  if(!excelReady()){ fileInput.value=''; return; }
+  try{
+    const buf=await file.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array'});
+    const rowsOf=(name)=>{ const ws=wb.Sheets[name]; return ws? XLSX.utils.sheet_to_json(ws,{defval:''}) : null; };
+    const toBool=v=> v===true||v==='TRUE'||v==='true'||v===1||v==='1';
+    const toObj=(v,fb)=>{ if(!v) return fb; try{ const p=JSON.parse(v); return (p&&typeof p==='object')?p:fb; }catch(e){ return fb; } };
+    const toArr=v=>{ if(!v) return []; try{ const p=JSON.parse(v); return Array.isArray(p)?p:[]; }catch(e){ return []; } };
+    let sheetsFound=0;
+
+    const workersRows=rowsOf('Workers');
+    if(workersRows){ sheetsFound++; state.workers=workersRows.filter(r=>r.id).map(r=>({ id:String(r.id), name:String(r.name||''), code:String(r.code||''), shiftId:String(r.shiftId||''), deptKey:String(r.deptKey||''), active:toBool(r.active), present:toBool(r.present), annualTotal:r.annualTotal===''?undefined:Number(r.annualTotal), seasonalCategory:r.seasonalCategory||'' })); }
+
+    const usersRows=rowsOf('Users');
+    if(usersRows){
+      sheetsFound++;
+      const existingUsersById={}; (state.users||[]).forEach(u=>{ existingUsersById[u.id]=u; });
+      // لو خانة username/password فاضية في الشيت (الوضع الافتراضي في التصدير)، بنحافظ على القيمة القديمة بدل ما نمسحها.
+      state.users = await Promise.all(usersRows.filter(r=>r.id).map(async r=>{
+        const existing=existingUsersById[String(r.id)];
+        const username = (r.username && String(r.username).trim()) ? String(r.username).trim() : (existing? existing.username : '');
+        const newPlainPassword = (r.password && String(r.password).trim()) ? String(r.password).trim() : '';
+        const u = { id:String(r.id), name:String(r.name||''), username, role:String(r.role||'supervisor'), shiftId:r.shiftId?String(r.shiftId):null, active:toBool(r.active), temporary:toBool(r.temporary) };
+        if (newPlainPassword) {
+          await setUserPassword(u, newPlainPassword); // كلمة سر جديدة اتكتبت في الشيت -> يتعمل لها hash
+        } else if (existing) {
+          u.passwordHash = existing.passwordHash;
+          u.passwordSalt = existing.passwordSalt;
+        }
+        return u;
+      }));
+    }
+
+    const shiftsRows=rowsOf('Shifts');
+    if(shiftsRows){ sheetsFound++; state.shifts=shiftsRows.filter(r=>r.id).map(r=>({ id:String(r.id), name:String(r.name||''), startTime:String(r.startTime||''), endTime:String(r.endTime||''), icon:r.icon||'', supervisorId:r.supervisorId||'' })); }
+
+    const reportsRows=rowsOf('Reports');
+    if(reportsRows){ sheetsFound++; state.reports=reportsRows.filter(r=>r.id).map(r=>({ id:String(r.id), date:String(r.date||''), dateISO:r.dateISO||'', shiftId:r.shiftId||'', shiftName:String(r.shiftName||''), shiftTimes:r.shiftTimes||'', supervisor:String(r.supervisor||''), workersCount:Number(r.workersCount)||0, attendance:toObj(r.attendanceJSON,{}), departments:toObj(r.departmentsJSON,{}), ops:{ truckCount:r.truckCount||'', status:r.status||'', notes:r.notes||'', issues:r.issues||'' }, telegramSent:toBool(r.telegramSent) })); }
+
+    const leavesRows=rowsOf('Leaves');
+    if(leavesRows){ sheetsFound++; state.leaves=leavesRows.filter(r=>r.id).map(r=>({ id:String(r.id), workerId:String(r.workerId||''), name:String(r.name||''), code:String(r.code||''), type:String(r.type||''), days:Number(r.days)||0, start:String(r.start||''), end:r.end||'', returnDate:r.returnDate||'', balanceBefore:r.balanceBefore===''?undefined:Number(r.balanceBefore), balanceAfter:r.balanceAfter===''?undefined:Number(r.balanceAfter), createdBy:String(r.createdBy||''), createdAt:String(r.createdAt||''), batchId:r.batchId||'', selectedDays:toArr(r.selectedDaysJSON) })); }
+
+    const shiftChangesRows=rowsOf('ShiftChanges');
+    if(shiftChangesRows){ sheetsFound++; state.shiftChanges=shiftChangesRows.filter(r=>r.id).map(r=>({ id:String(r.id), name:String(r.name||''), code:String(r.code||''), oldShift:r.oldShift||'', newShift:r.newShift||'', by:r.by||'', at:r.at||'', batchId:r.batchId||'' })); }
+
+    const seasonalRows=rowsOf('SeasonalAssignments');
+    if(seasonalRows){ sheetsFound++; state.seasonalAssignments=seasonalRows.filter(r=>r.workerId).map(r=>({ workerId:String(r.workerId), name:r.name||'', code:r.code||'', category:r.category||'', by:r.by||'', at:r.at||'' })); }
+
+    const tasksRows=rowsOf('WarehouseTasks');
+    if(tasksRows){
+      sheetsFound++;
+      const keepMedia={}; (state.warehouseTasks||[]).forEach(t=>{ keepMedia[t.id]={photo:t.photo||'',afterPhoto:t.afterPhoto||''}; });
+      state.warehouseTasks=tasksRows.filter(r=>r.id).map(r=>({ id:String(r.id), notes:String(r.notes||''), status:String(r.status||'pending'), targetShiftId:r.targetShiftId||'', createdBy:r.createdBy||'', createdAt:r.createdAt||'', resolvedBy:r.resolvedBy||'', resolvedAt:r.resolvedAt||'', resolutionNotes:r.resolutionNotes||'', failureReason:r.failureReason||'', photo:(keepMedia[r.id]&&keepMedia[r.id].photo)||'', afterPhoto:(keepMedia[r.id]&&keepMedia[r.id].afterPhoto)||'' }));
+    }
+
+    if(!sheetsFound){ toast('🔴 لم يتم العثور على أي شيت مطابق داخل الملف'); fileInput.value=''; return; }
+
+    ensureV2State();
+    queueSave();
+    await saveState();
+    fileInput.value='';
+    toast('🟢 تم استيراد بيانات Excel بنجاح');
+    renderApp();
+  }catch(e){
+    toast('🔴 تعذر قراءة ملف Excel'+(e&&e.message?': '+e.message:''));
+    fileInput.value='';
+  }
+}
+
+function renderExcelScreen(){
+  ensureV2State();
+  return `<div class="px" style="padding-top:12px">
+    <h3 style="margin:0 0 12px">📊 تصدير واستيراد Excel</h3>
+    <div class="card">
+      <b>⬇️ تصدير نسخة Excel</b>
+      <p class="muted" style="margin-top:6px">يُنشئ ملف Excel (.xlsx) حقيقي يحتوي كل بيانات التطبيق: العمال، المسؤولين، الشفتات، التقارير، الإجازات، تغييرات الشفتات، التوزيع الموسمي، وملاحظات المخزن — كل نوع بيانات في شيت منفصل.</p>
+      <button class="btn btn-primary" style="margin-top:10px" onclick="exportToExcel()">⬇️ تصدير Excel الآن</button>
+    </div>
+    <div class="card">
+      <b>⬆️ استيراد من Excel</b>
+      <p class="muted" style="margin-top:6px">اختر ملف Excel بنفس تنسيق التصدير (يمكن تعديل بياناته من إكسل ثم إعادة رفعه). سيتم استبدال بيانات كل شيت موجود بالملف ببيانات التطبيق الحالية؛ أي شيت غير موجود بالملف يبقى كما هو.</p>
+      <input type="file" id="excelImportInput" accept=".xlsx,.xls" style="display:none" onchange="handleExcelImportFile(this)">
+      <button class="btn btn-secondary" style="margin-top:10px" onclick="triggerExcelImport()">⬆️ اختيار ملف واستيراد</button>
+    </div>
+    <div class="card"><p class="muted" style="margin:0">⚠️ يُفضّل عمل تصدير احتياطي قبل أي استيراد، لأن الاستيراد يستبدل بيانات الشيتات الموجودة بالملف.</p></div>
+  </div>`;
+}
+
+/* Enhanced state defaults + persistence */
+const _oldGetDefaultState=getDefaultState;
+getDefaultState=function(){const s=_oldGetDefaultState();s.warehouseTasks=[];s.leaves=[];s.shiftChanges=[];s.seasonalAssignments=[];s.pendingLeaves=[];s.leaveBatchId=null;return s;};
+const _oldLoadState=loadState;
+loadState=async function(){await _oldLoadState();ensureV2State();};
+const _oldSaveState=saveState;
+saveState=async function(){
+  ensureV2State();
+  try {
+    await _oldSaveState();
+  } catch(e) {
+    console.error('Firestore persistence error:', e);
+  }
+};
+
+/* Add nav and screens */
+function renderNav(){const u=currentUser(),admin=isAdmin();let html=`<button class="nav-item ${state.activeScreen==='dashboard'?'active':''}" onclick="setScreen('dashboard')"><span>🏠</span><span>الرئيسية</span></button>`;if(admin)html+=`<button class="nav-item ${state.activeScreen==='workers'?'active':''}" onclick="setScreen('workers')"><span>👷</span><span>العمال</span></button><button class="nav-item ${state.activeScreen==='users'?'active':''}" onclick="setScreen('users')"><span>🔑</span><span>المسؤولين</span></button>`;html+=`<div style="flex:1;display:flex;justify-content:center"><button class="nav-fab-btn" onclick="startNewReport()">➕</button></div><button class="nav-item ${state.activeScreen==='reports'?'active':''}" onclick="setScreen('reports')"><span>📊</span><span>التقارير</span></button>`;if(admin)html+=`<button class="nav-item ${state.activeScreen==='settings'?'active':''}" onclick="setScreen('settings')"><span>🤖</span><span>البوت</span></button>`;document.getElementById('bottomNav').innerHTML=html;}
+function renderToolsCards(){
+  const admin=isAdmin();
+  const mineCount=admin? state.warehouseTasks.length : state.warehouseTasks.filter(t=>!t.targetShiftId||t.targetShiftId===currentUser().shiftId).length;
+  const warehouseBtn = admin
+    ? `<button class="btn btn-secondary" onclick="setScreen('warehouse')">🏪 ملاحظات المخزن</button>`
+    : `<button class="btn btn-secondary" onclick="setScreen('warehouse')">🛠️ متابعة وحل الملاحظات${mineCount?` (${mineCount})`:''}</button>`;
+  return `<div class="card" style="margin-top:12px"><b>🧰 الإضافات</b><div class="grid2" style="margin-top:10px">${warehouseBtn}<button class="btn btn-secondary" onclick="setScreen('leaves')">🗓️ الإجازات</button><button class="btn btn-secondary" onclick="openShiftChangesScreen()">🔄 تغيير الشفتات</button><button class="btn btn-secondary" onclick="setScreen('distribution')">🧩 توزيع الأقسام</button><button class="btn btn-secondary" onclick="setScreen('seasonal')">📋 الموسمي</button>${admin?`<button class="btn btn-secondary" onclick="setScreen('excel')">📊 تصدير / استيراد Excel</button>`:''}</div></div>`;
+}
+const _oldRenderDashboard=renderDashboard;
+renderDashboard=function(){return _oldRenderDashboard()+renderToolsCards();};
+const _oldRenderApp=renderApp;
+renderApp=function(){ensureV2State();const u=currentUser();if(!u){_oldRenderApp();return}document.documentElement.setAttribute('data-theme',state.theme);document.getElementById('themeBtn').textContent=state.theme==='dark'?'☀️':'🌙';document.getElementById('appHeader').style.display='flex';document.getElementById('bottomNav').style.display='flex';document.getElementById('headerRole').textContent=`${u.name} (${u.role==='admin'?'مشرف رئيسي':'مسؤول شفت'})`;renderNav();const app=document.getElementById('app');switch(state.activeScreen){case 'warehouse':app.innerHTML=renderWarehouseScreen();break;case 'leaves':app.innerHTML=renderLeavesScreen();break;case 'shiftChanges':app.innerHTML=renderShiftChangesScreen();break;case 'distribution':app.innerHTML=renderDistributionScreen();break;case 'seasonal':app.innerHTML=renderSeasonalScreen();break;case 'excel':app.innerHTML=renderExcelScreen();break;default:_oldRenderApp();return}attachEvents();};
+
+/* Keep v2 state fields intact whenever queueSave is used */
+const _oldQueueSave=queueSave;
+queueSave=function(){ensureV2State();_oldQueueSave();};
+
+
+/* Sync existing mutations too */
+const _addUser=handleAddUser; handleAddUser=function(e){_addUser(e); const u=state.users[state.users.length-1]; if(u) syncMark('user_create',u);};
+const _editUser=handleEditUser; handleEditUser=function(e,id){_editUser(e,id); const u=state.users.find(x=>x.id===id); if(u) syncMark('user_update',u);};
+const _toggleUser=toggleUserActive; toggleUserActive=function(id){_toggleUser(id); const u=state.users.find(x=>x.id===id); if(u) syncMark('user_toggle',u);};
+const _addWorker=handleAddWorker; handleAddWorker=function(e){_addWorker(e); const w=state.workers[state.workers.length-1]; if(w) syncMark('worker_create',w);};
+const _editWorker=handleEditWorker; handleEditWorker=function(e,id){_editWorker(e,id); const w=state.workers.find(x=>x.id===id); if(w) syncMark('worker_update',w);};
+const _toggleWorker=toggleWorkerActive; toggleWorkerActive=function(id){_toggleWorker(id); const w=state.workers.find(x=>x.id===id); if(w) syncMark('worker_toggle',w);};
+const _editShift=handleEditShift; handleEditShift=function(e,id){_editShift(e,id); const sh=state.shifts.find(x=>x.id===id); if(sh) syncMark('shift_update',sh);};
+const _submitReport=submitFinalReport; submitFinalReport=function(){_submitReport(); const r=state.reports[0]; if(r) syncMark('report_create',r);};
+
+/* Ensure v2 state fields exist from the start */
+ensureV2State();
+
+/* PWA service worker */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));
+}
+
+/* ================= إضافة جديدة: مسؤول شفت مؤقت (بدون تعديل أي كود سابق) ================= */
+const _oldRenderUsersScreen_tempSup = renderUsersScreen;
+renderUsersScreen = function () {
+  let html = _oldRenderUsersScreen_tempSup();
+  html = html.replace(
+    '<button class="btn btn-primary btn-sm" onclick="openAddUserModal()">➕ إضافة مسؤول</button>',
+    '<button class="btn btn-primary btn-sm" onclick="openAddUserModal()">➕ إضافة مسؤول</button><button class="btn btn-secondary btn-sm" onclick="openAddTempSupervisorModal()">⏱️ مسؤول شفت مؤقت</button>'
+  );
+  return html;
+};
+
+function openAddTempSupervisorModal() {
+  openModal(`
+    <div class="modal-header">
+      <h3 style="margin:0;">⏱️ إضافة مسؤول شفت مؤقت</h3>
+      <button class="icon-btn" onclick="closeModal()">✕</button>
+    </div>
+    <form onsubmit="handleAddTempSupervisor(event)">
+      <label style="font-size:12px;">اسم المسؤول المؤقت</label>
+      <input class="input" id="tempSupName" required placeholder="اكتب الاسم هنا">
+
+      <label style="font-size:12px; margin-top:8px; display:block;">اسم المستخدم (Username)</label>
+      <input class="input" id="tempSupUsername" required placeholder="مثال: temp_1">
+
+      <label style="font-size:12px; margin-top:8px; display:block;">كلمة السر (Password)</label>
+      <input class="input" type="text" id="tempSupPassword" required minlength="4" placeholder="ضع كلمة سر (٤ خانات على الأقل)">
+
+      <label style="font-size:12px; margin-top:8px; display:block;">الشفت</label>
+      <select class="input" id="tempSupShift">
+        ${state.shifts.map(s => `<option value="${s.id}">${s.icon ? s.icon + ' ' : ''}${s.name}</option>`).join('')}
+      </select>
+
+      <button class="btn btn-primary" style="margin-top:16px;">➕ إضافة المؤقت</button>
+    </form>
+  `);
+}
+
+async function handleAddTempSupervisor(e) {
+  e.preventDefault();
+  const rawName = document.getElementById('tempSupName').value.trim();
+  const username = document.getElementById('tempSupUsername').value.trim();
+  const password = document.getElementById('tempSupPassword').value.trim();
+  const shiftId = document.getElementById('tempSupShift').value;
+
+  if (!rawName) { toast('🔴 اكتب اسم المسؤول المؤقت'); return; }
+  if (state.users.some(u => u.username === username)) {
+    toast('🔴 اسم المستخدم هذا مستخدم بالفعل!');
+    return;
+  }
+
+  const u = {
+    id: 'usr_temp_' + Date.now(),
+    name: `مسؤول شفت مؤقت (${rawName})`,
+    username,
+    role: 'supervisor',
+    shiftId,
+    active: true,
+    temporary: true
+  };
+  await setUserPassword(u, password);
+  state.users.push(u);
+  queueSave();
+  syncMark('user_create', u);
+  closeModal();
+  toast('تمت إضافة المسؤول المؤقت بنجاح');
+  renderApp();
+}
+
+/* ================================================================================
+   إضافة جديدة (بدون حذف أو تعديل أي كود سابق):
+   📋 إدارة الإذونات والحالات اليومية + 📊 تقييم وانضباط العمال + 🏆 ترتيب العمال
+   + 🔐 سجل تعديلات + 🗑️ حذف عامل من قسم إدارة العمال
+   ================================================================================ */
+
+const STATUS_TYPES=[
+  {key:'sick',label:'🤒 مرض / تعب ومغادرة',mode:'none'},
+  {key:'emergency',label:'🏠 ظرف طارئ ومغادرة',mode:'none'},
+  {key:'lateEntry2h',label:'🕐 إذن تأخير ساعتين',mode:'time',timeLabel:'وقت الحضور الفعلي'},
+  {key:'earlyLeave2h',label:'🚪 إذن انصراف ساعتين',mode:'time',timeLabel:'وقت الانصراف'},
+  {key:'mission',label:'📝 مأمورية',mode:'range'},
+  {key:'penaltyHalf',label:'⚠️ جزاء نصف يوم',mode:'none'},
+  {key:'penaltyFull',label:'⚠️ جزاء يوم كامل',mode:'none'},
+  {key:'absentFull',label:'❌ غياب يوم كامل',mode:'none'},
+  {key:'absentHalf',label:'🌗 غياب نصف يوم',mode:'half'}
+];
+function statusTypeInfo(k){return STATUS_TYPES.find(t=>t.key===k)||STATUS_TYPES[0];}
+function statusLabel(t){return statusTypeInfo(t).label;}
+function plainLabel(s){return String(s||'').replace(/^\S+\s/,'');}
+function defaultEvalSettings(){return {deductions:{absentFull:15,absentHalf:7,penaltyHalf:5,penaltyFull:10,lateUnapprovedPerHour:4,earlyLeaveUnapprovedPerHour:4,sick:3}};}
+
+/* -------- حالة التطبيق: تمديد ensureV2State / getDefaultState / الحقول المتزامنة -------- */
+const _oldEnsureV2State_perm=ensureV2State;
+ensureV2State=function(){
+  _oldEnsureV2State_perm();
+  state.workerStatuses=Array.isArray(state.workerStatuses)?state.workerStatuses:[];
+  state.auditLog=Array.isArray(state.auditLog)?state.auditLog:[];
+  state.evalSettings=(state.evalSettings&&state.evalSettings.deductions)?state.evalSettings:defaultEvalSettings();
+  state.evalNotes=(state.evalNotes&&typeof state.evalNotes==='object')?state.evalNotes:{};
+};
+ensureV2State();
+if(!CORE_FIELDS.includes('evalSettings'))CORE_FIELDS.push('evalSettings');
+if(!CORE_FIELDS.includes('evalNotes'))CORE_FIELDS.push('evalNotes');
+if(!GROWING_COLLECTIONS.includes('workerStatuses')){GROWING_COLLECTIONS.push('workerStatuses');_syncCache.workerStatuses={};}
+if(!GROWING_COLLECTIONS.includes('auditLog')){GROWING_COLLECTIONS.push('auditLog');_syncCache.auditLog={};}
+const _oldGetDefaultState_perm=getDefaultState;
+getDefaultState=function(){const s=_oldGetDefaultState_perm();s.workerStatuses=[];s.auditLog=[];s.evalSettings=defaultEvalSettings();s.evalNotes={};return s;};
+
+function auditAdd(action,details){
+  const rec=Object.assign({id:'AUD-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),action,by:currentUser().name||'',at:new Date().toISOString()},details||{});
+  state.auditLog.unshift(rec);
+}
+function auditActionLabel(a){return {status_create:'➕ إضافة حالة',status_update:'✏️ تعديل حالة',status_decision:'✅ قرار اعتماد / رفض حالة',sick_toggle:'🤒 تغيير احتساب المرض في التقييم',status_delete:'🗑️ حذف حالة',eval_note_update:'📝 تحديث ملاحظة تقييم عامل',eval_settings_update:'⚙️ تعديل إعدادات نقاط التقييم',worker_delete:'🗑️ حذف عامل'}[a]||a;}
+
+/* -------- الصلاحيات -------- */
+function visibleWorkersForStatus(){const u=currentUser();return isAdmin()?state.workers.filter(w=>w.active):state.workers.filter(w=>w.active&&w.shiftId===u.shiftId);}
+function canEditStatusRecord(rec){if(isAdmin())return true;const u=currentUser();return rec.shiftId===u.shiftId&&rec.approvalStatus==='pending';}
+function canDeleteStatusRecord(rec){return canEditStatusRecord(rec);}
+
+/* -------- إضافة / تعديل حالة -------- */
+function openAddStatusModal(presetWorkerId,editId){
+  const workers=visibleWorkersForStatus();
+  if(!workers.length){toast('لا يوجد عمال متاحون لإضافة حالة');return;}
+  const editRec=editId?state.workerStatuses.find(x=>x.id===editId):null;
+  const wId=editRec?editRec.workerId:(presetWorkerId||workers[0].id);
+  const type=editRec?editRec.type:'sick';
+  const date=editRec?editRec.date:localISO(new Date());
+  window._statusEditId=editId||'';
+  openModal(`<div class="modal-header"><h3 style="margin:0">📋 ${editRec?'تعديل حالة':'إضافة حالة يومية'}</h3><button class="icon-btn" onclick="closeModal()">✕</button></div>
+    <label class="muted">العامل</label>
+    <select class="input" id="statusWorker" ${editRec?'disabled':''}>${workers.map(w=>`<option value="${w.id}" ${w.id===wId?'selected':''}>${escapeHtml(w.name)} — ${escapeHtml(w.code)}</option>`).join('')}</select>
+    <label class="muted" style="display:block;margin-top:10px">التاريخ</label>
+    <input class="input" type="date" id="statusDate" value="${date}">
+    <label class="muted" style="display:block;margin-top:10px">نوع الحالة</label>
+    <select class="input" id="statusType" onchange="renderStatusDynamicFields()">${STATUS_TYPES.map(t=>`<option value="${t.key}" ${t.key===type?'selected':''}>${t.label}</option>`).join('')}</select>
+    <div id="statusDynamic" style="margin-top:6px"></div>
+    <label class="muted" style="display:block;margin-top:10px">السبب / الملاحظات</label>
+    <textarea class="input" id="statusReason" rows="3">${editRec?escapeHtml(editRec.reason||''):''}</textarea>
+    <button class="btn btn-primary" style="margin-top:14px" onclick="handleSaveStatus()">💾 حفظ الحالة</button>`);
+  renderStatusDynamicFields(editRec);
+}
+function renderStatusDynamicFields(editRec){
+  const type=document.getElementById('statusType')?.value||'sick';
+  const info=statusTypeInfo(type);
+  const box=document.getElementById('statusDynamic'); if(!box)return;
+  const st=(editRec&&editRec.startTime)||''; const et=(editRec&&editRec.endTime)||''; const hp=(editRec&&editRec.halfPart)||'first';
+  if(info.mode==='time'){
+    box.innerHTML=`<label class="muted" style="display:block">${info.timeLabel}</label><input class="input" type="time" id="statusTime1" value="${st}">`;
+  }else if(info.mode==='range'){
+    box.innerHTML=`<div class="grid2"><div><label class="muted">وقت الخروج</label><input class="input" type="time" id="statusTime1" value="${st}"></div><div><label class="muted">وقت العودة</label><input class="input" type="time" id="statusTime2" value="${et}"></div></div>`;
+  }else if(info.mode==='half'){
+    box.innerHTML=`<label class="muted" style="display:block">النصف</label><select class="input" id="statusHalf"><option value="first" ${hp==='first'?'selected':''}>النصف الأول</option><option value="second" ${hp==='second'?'selected':''}>النصف الثاني</option></select>`;
+  }else{
+    box.innerHTML='';
+  }
+}
+function handleSaveStatus(){
+  const editId=window._statusEditId||'';
+  const workerId=document.getElementById('statusWorker').value;
+  const w=workerById(workerId); if(!w){toast('اختر عاملًا');return;}
+  const date=document.getElementById('statusDate').value; if(!date){toast('حدد التاريخ');return;}
+  const type=document.getElementById('statusType').value;
+  const info=statusTypeInfo(type);
+  const reason=document.getElementById('statusReason').value.trim();
+  let startTime='',endTime='',halfPart='',durationMinutes=0;
+  if(info.mode==='time'){startTime=document.getElementById('statusTime1').value||'';if(!startTime){toast('حدد الوقت');return;}}
+  if(info.mode==='range'){
+    startTime=document.getElementById('statusTime1').value||'';endTime=document.getElementById('statusTime2').value||'';
+    if(!startTime||!endTime){toast('حدد وقت الخروج والعودة');return;}
+    const [h1,m1]=startTime.split(':').map(Number),[h2,m2]=endTime.split(':').map(Number);
+    durationMinutes=Math.max(0,(h2*60+m2)-(h1*60+m1));
+  }
+  if(info.mode==='half'){halfPart=document.getElementById('statusHalf').value||'first';}
+  if(editId){
+    const rec=state.workerStatuses.find(x=>x.id===editId); if(!rec){toast('تعذر إيجاد السجل');return;}
+    if(!canEditStatusRecord(rec)){toast('غير مصرح لك بتعديل هذه الحالة');return;}
+    const before={...rec};
+    Object.assign(rec,{date,type,startTime,endTime,halfPart,durationMinutes,reason,editedBy:currentUser().name,editedAt:new Date().toISOString()});
+    if(type!=='sick')rec.sickCounted=null; else if(rec.sickCounted===null||rec.sickCounted===undefined)rec.sickCounted=false;
+    auditAdd('status_update',{recordId:rec.id,workerId:rec.workerId,typeBefore:before.type,typeAfter:rec.type});
+    syncMark('status_update',rec);
+    queueSave();closeModal();toast('تم تحديث الحالة');renderApp();return;
+  }
+  const rec={id:'STA-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),workerId:w.id,name:w.name,code:w.code,shiftId:w.shiftId,date,type,startTime,endTime,halfPart,durationMinutes,reason,approvalStatus:isAdmin()?'approved':'pending',sickCounted:type==='sick'?false:null,createdBy:currentUser().name,createdAt:new Date().toISOString()};
+  state.workerStatuses.unshift(rec);
+  auditAdd('status_create',{recordId:rec.id,workerId:w.id,type});
+  syncMark('status_create',rec);
+  queueSave();closeModal();toast('تم تسجيل الحالة بنجاح');renderApp();
+}
+function decideStatus(id,decision){
+  if(!isAdmin()){toast('اعتماد أو رفض الحالات يقتصر على المشرف الرئيسي');return;}
+  const rec=state.workerStatuses.find(x=>x.id===id); if(!rec)return;
+  const before=rec.approvalStatus;
+  rec.approvalStatus=decision; rec.decidedBy=currentUser().name; rec.decidedAt=new Date().toISOString();
+  auditAdd('status_decision',{recordId:id,workerId:rec.workerId,before,after:decision});
+  syncMark('status_decision',rec);
+  queueSave();toast(decision==='approved'?'✅ تم اعتماد الحالة':'❌ تم رفض الحالة');renderApp();
+}
+function toggleSickCounted(id){
+  if(!isAdmin()){toast('هذا القرار يقتصر على المشرف الرئيسي');return;}
+  const rec=state.workerStatuses.find(x=>x.id===id); if(!rec||rec.type!=='sick')return;
+  const before=!!rec.sickCounted;
+  rec.sickCounted=!before; rec.sickDecisionBy=currentUser().name; rec.sickDecisionAt=new Date().toISOString();
+  auditAdd('sick_toggle',{recordId:id,workerId:rec.workerId,before,after:rec.sickCounted});
+  syncMark('sick_toggle',rec);
+  queueSave();toast(rec.sickCounted?'🤒 أصبحت محتسبة في التقييم':'🤒 أصبحت غير محتسبة في التقييم');renderApp();
+}
+function deleteStatus(id){
+  const rec=state.workerStatuses.find(x=>x.id===id); if(!rec)return;
+  if(!canDeleteStatusRecord(rec)){toast('غير مصرح لك بحذف هذه الحالة');return;}
+  if(!confirm('هل تريد حذف هذه الحالة؟'))return;
+  state.workerStatuses=state.workerStatuses.filter(x=>x.id!==id);
+  auditAdd('status_delete',{recordId:id,workerId:rec.workerId,type:rec.type});
+  queueSave();toast('تم حذف الحالة');renderApp();
+}
+
+/* -------- شاشة الحالات -------- */
+let _statusFilter={shiftId:'',type:'',q:'',month:localISO(new Date()).slice(0,7)};
+function setStatusFilter(k,v){_statusFilter[k]=v;renderApp();}
+function statusApprovalBadge(rec){return rec.approvalStatus==='approved'?'<span class="badge success">✅ معتمد</span>':rec.approvalStatus==='rejected'?'<span class="badge danger">❌ مرفوض</span>':'<span class="badge warning">⏳ قيد المراجعة</span>';}
+function statusDetailLine(rec){
+  if(rec.type==='lateEntry2h')return `وقت الحضور: ${rec.startTime||'—'}`;
+  if(rec.type==='earlyLeave2h')return `وقت الانصراف: ${rec.startTime||'—'}`;
+  if(rec.type==='mission')return `من ${rec.startTime||'—'} إلى ${rec.endTime||'—'} (${rec.durationMinutes||0} دقيقة)`;
+  if(rec.type==='absentHalf')return rec.halfPart==='second'?'النصف الثاني':'النصف الأول';
+  return '';
+}
+function scopedStatusRows(){
+  const scope=isAdmin()?state.workers.filter(w=>w.active):state.workers.filter(w=>w.active&&w.shiftId===currentUser().shiftId);
+  const scopeIds=new Set(scope.map(w=>w.id));
+  let rows=state.workerStatuses.filter(r=>scopeIds.has(r.workerId));
+  if(_statusFilter.shiftId)rows=rows.filter(r=>r.shiftId===_statusFilter.shiftId);
+  if(_statusFilter.type)rows=rows.filter(r=>r.type===_statusFilter.type);
+  if(_statusFilter.month)rows=rows.filter(r=>(r.date||'').startsWith(_statusFilter.month));
+  if(_statusFilter.q){const q=_statusFilter.q.toLowerCase();rows=rows.filter(r=>r.name.toLowerCase().includes(q)||r.code.toLowerCase().includes(q));}
+  return rows.slice().sort((a,b)=>String(b.date+b.createdAt).localeCompare(a.date+a.createdAt));
+}
+function renderStatusScreen(){
+  const rows=scopedStatusRows();
+  return `<div class="px" style="padding-top:12px">
+    <div class="row"><h3 style="margin:0">📋 الإذونات والحالات اليومية</h3><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-secondary btn-sm" onclick="printStatusReport()">🖨️ تقرير</button><button class="btn btn-primary btn-sm" onclick="openAddStatusModal()">➕ إضافة</button></div></div>
+    <div class="grid2" style="margin-top:10px">
+      <input class="input" type="month" value="${_statusFilter.month}" onchange="setStatusFilter('month',this.value)">
+      <select class="input" onchange="setStatusFilter('type',this.value)"><option value="">كل الأنواع</option>${STATUS_TYPES.map(t=>`<option value="${t.key}" ${_statusFilter.type===t.key?'selected':''}>${t.label}</option>`).join('')}</select>
+    </div>
+    ${isAdmin()?`<select class="input" style="margin-top:8px" onchange="setStatusFilter('shiftId',this.value)"><option value="">كل الشفتات</option>${state.shifts.map(s=>`<option value="${s.id}" ${_statusFilter.shiftId===s.id?'selected':''}>${s.icon||''} ${escapeHtml(s.name)}</option>`).join('')}</select>`:''}
+    <input class="input" style="margin-top:8px" placeholder="🔍 بحث بالاسم أو الكود" value="${escapeHtml(_statusFilter.q)}" oninput="setStatusFilter('q',this.value)">
+    <div style="margin-top:12px">
+      ${rows.length?rows.map(r=>`<div class="card">
+        <div class="row"><b>${escapeHtml(r.name)}</b>${statusApprovalBadge(r)}</div>
+        <div class="muted" style="margin-top:2px">${escapeHtml(r.code)} • ${escapeHtml(shiftById(r.shiftId)?.name||'—')} • ${r.date}</div>
+        <div style="margin-top:6px;font-weight:700">${statusLabel(r.type)}</div>
+        ${statusDetailLine(r)?`<div class="muted" style="margin-top:2px">${escapeHtml(statusDetailLine(r))}</div>`:''}
+        ${r.reason?`<div class="muted" style="margin-top:2px">${escapeHtml(r.reason)}</div>`:''}
+        ${r.type==='sick'?`<div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="badge ${r.sickCounted?'warning':'info'}">${r.sickCounted?'🤒 محتسب في التقييم':'🤒 غير محتسب في التقييم'}</span>${isAdmin()?`<button class="btn btn-secondary btn-sm" onclick="toggleSickCounted('${r.id}')">🔄 تبديل الاحتساب</button>`:''}</div>`:''}
+        <div class="muted" style="margin-top:6px">سجّلها: ${escapeHtml(r.createdBy||'')}</div>
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+          ${isAdmin()&&r.approvalStatus==='pending'?`<button class="btn btn-primary btn-sm" onclick="decideStatus('${r.id}','approved')">✅ اعتماد</button><button class="btn btn-danger btn-sm" onclick="decideStatus('${r.id}','rejected')">❌ رفض</button>`:''}
+          ${canEditStatusRecord(r)?`<button class="btn btn-secondary btn-sm" onclick="openAddStatusModal('${r.workerId}','${r.id}')">✏️ تعديل</button>`:''}
+          ${canDeleteStatusRecord(r)?`<button class="btn btn-danger btn-sm" onclick="deleteStatus('${r.id}')">🗑️ حذف</button>`:''}
+        </div>
+      </div>`).join(''):'<div class="card">لا توجد حالات مسجلة لهذه الفلاتر.</div>'}
+    </div>
+  </div>`;
+}
+function printStatusReport(){
+  const rows=scopedStatusRows();
+  if(!rows.length){toast('لا توجد حالات مطابقة للتقرير');return;}
+  const out=rows.slice(0,200).map(r=>[r.name,r.code,shiftById(r.shiftId)?.name||'—',r.date,plainLabel(statusLabel(r.type)),statusDetailLine(r)||'—',r.approvalStatus==='approved'?'معتمد':r.approvalStatus==='rejected'?'مرفوض':'قيد المراجعة']);
+  canvasReport('📋 تقرير الإذونات والحالات اليومية',['العامل','الكود','الشفت','التاريخ','النوع','التفاصيل','الحالة'],out,'تقرير-الإذونات-والحالات');
+}
+
+/* -------- أيام العمل الفعلية (بدل افتراض كل أيام الشهر) -------- */
+const AR_MONTH_NAMES={'يناير':1,'فبراير':2,'مارس':3,'أبريل':4,'إبريل':4,'مايو':5,'يونيو':6,'يوليو':7,'أغسطس':8,'سبتمبر':9,'أكتوبر':10,'نوفمبر':11,'ديسمبر':12};
+// بيرجع تاريخ التقرير بصيغة ISO سواء كان محفوظ فيه dateISO (تقارير جديدة) أو محتاج تحويل من التسمية العربية (تقارير قديمة قبل هذا التحديث)
+function reportDateISO(r){
+  if(r.dateISO) return r.dateISO;
+  const m=String(r.date||'').match(/(\d{1,2})\s+([^\d\s]+)\s+(\d{4})/);
+  if(!m) return null;
+  const month=AR_MONTH_NAMES[m[2]];
+  if(!month) return null;
+  return `${m[3]}-${String(month).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;
+}
+// بيحسب عدد أيام العمل الفعلية للعامل في الفترة = عدد الأيام اللي فعلاً اتعمل فيها كشف حضور تشغيلي شامله (سواء ظهر حاضر أو غايب فيه)
+// وده بيستبعد تلقائيًا أي يوم محدش اشتغل فيه أصلاً (زي جمعة عادية معملهاش كشف)، وبيحسب أي يوم استثنائي فعلاً حصل فيه شغل (زي جمعة اشتغل فيها العامل)
+function workerWorkedDays(workerId,from,to){
+  const days=new Set();
+  state.reports.forEach(r=>{
+    if(!r.attendance||!(workerId in r.attendance)) return;
+    const iso=reportDateISO(r);
+    if(!iso||iso<from||iso>to) return;
+    days.add(iso);
+  });
+  return days.size;
+}
+/* -------- حساب التقييم -------- */
+function evalPeriodRange(monthStr){
+  const parts=(monthStr||localISO(new Date()).slice(0,7)).split('-').map(Number);
+  const y=parts[0],m=parts[1];
+  const from=`${y}-${String(m).padStart(2,'0')}-01`;
+  const lastDay=new Date(y,m,0).getDate();
+  const to=`${y}-${String(m).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+  return {from,to,days:lastDay};
+}
+function computeWorkerEval(workerId,monthStr){
+  const {from,to,days}=evalPeriodRange(monthStr);
+  const recs=state.workerStatuses.filter(r=>r.workerId===workerId&&r.date>=from&&r.date<=to);
+  const approved=recs.filter(r=>r.approvalStatus==='approved');
+  const c={absentFull:0,absentHalf:0,lateEntry2h:0,earlyLeave2h:0,mission:0,sick:0,sickCounted:0,sickNotCounted:0,emergency:0,penaltyHalf:0,penaltyFull:0};
+  approved.forEach(r=>{
+    if(c[r.type]!==undefined)c[r.type]++;
+    if(r.type==='sick'){ r.sickCounted?c.sickCounted++:c.sickNotCounted++; }
+  });
+  const rejectedLateHours=recs.filter(r=>r.type==='lateEntry2h'&&r.approvalStatus==='rejected').length*2;
+  const rejectedEarlyHours=recs.filter(r=>r.type==='earlyLeave2h'&&r.approvalStatus==='rejected').length*2;
+  const d=state.evalSettings.deductions;
+  const deduct=c.absentFull*d.absentFull+c.absentHalf*d.absentHalf+c.penaltyHalf*d.penaltyHalf+c.penaltyFull*d.penaltyFull+c.sickCounted*d.sick+rejectedLateHours*d.lateUnapprovedPerHour+rejectedEarlyHours*d.earlyLeaveUnapprovedPerHour;
+  const score=Math.max(0,Math.min(100,Math.round(100-deduct)));
+  const absentEquivDays=c.absentFull+c.absentHalf*0.5;
+  const workedDays=workerWorkedDays(workerId,from,to);
+  const attendancePct=workedDays?Math.max(0,Math.round((1-absentEquivDays/workedDays)*100)):100;
+  return {counts:c,rejectedLateHours,rejectedEarlyHours,score,attendancePct,periodDays:days,workedDays,from,to};
+}
+function ratingForScore(s){
+  if(s>=90)return {label:'🟢 ممتاز',cls:'success'};
+  if(s>=75)return {label:'🔵 جيد جدًا',cls:'info'};
+  if(s>=60)return {label:'🟡 جيد',cls:'warning'};
+  if(s>=40)return {label:'🟠 يحتاج تحسين',cls:'warning'};
+  return {label:'🔴 ضعيف',cls:'danger'};
+}
+
+/* -------- شاشة التقييم -------- */
+let _evalMonth=localISO(new Date()).slice(0,7);
+let _evalDetailWorkerId='';
+function setEvalMonth(v){_evalMonth=v;renderApp();}
+function openWorkerEvalDetailScreen(workerId){_evalDetailWorkerId=workerId;setScreen('workerEval');}
+function backToEvalList(){_evalDetailWorkerId='';renderApp();}
+function renderEvalScreen(){
+  if(_evalDetailWorkerId)return renderEvalDetail(_evalDetailWorkerId);
+  const scope=isAdmin()?state.workers.filter(w=>w.active):state.workers.filter(w=>w.active&&w.shiftId===currentUser().shiftId);
+  return `<div class="px" style="padding-top:12px">
+    <div class="row"><h3 style="margin:0">📊 تقييم وانضباط العمال</h3>${isAdmin()?`<div style="display:flex;gap:6px"><button class="btn btn-secondary btn-sm" onclick="openEvalSettingsModal()">⚙️ الإعدادات</button><button class="btn btn-secondary btn-sm" onclick="setScreen('auditLog')">🔐 السجل</button></div>`:''}</div>
+    <input class="input" type="month" style="margin-top:10px" value="${_evalMonth}" onchange="setEvalMonth(this.value)">
+    <div style="margin-top:12px">
+      ${scope.length?scope.map(w=>{const ev=computeWorkerEval(w.id,_evalMonth);const r=ratingForScore(ev.score);
+        return `<div class="card" style="cursor:pointer" onclick="openWorkerEvalDetailScreen('${w.id}')">
+          <div class="row"><b>${escapeHtml(w.name)}</b><span class="badge ${r.cls}">${r.label}</span></div>
+          <div class="muted" style="margin-top:2px">${escapeHtml(w.code)} • ${escapeHtml(shiftById(w.shiftId)?.name||'—')}</div>
+          <div class="row" style="margin-top:8px"><span>الدرجة: <b>${ev.score}/100</b></span><span>الحضور: <b>${ev.attendancePct}%</b></span></div>
+        </div>`;}).join(''):'<div class="card">لا يوجد عمال ضمن هذا النطاق.</div>'}
+    </div>
+  </div>`;
+}
+function renderEvalDetail(workerId){
+  const w=workerById(workerId);
+  if(!w)return `<div class="px" style="padding-top:12px"><div class="card">العامل غير موجود.</div><button class="btn btn-secondary" onclick="backToEvalList()">⬅️ رجوع</button></div>`;
+  const ev=computeWorkerEval(workerId,_evalMonth);const r=ratingForScore(ev.score);const c=ev.counts;
+  const noteVal=state.evalNotes[workerId]||'';
+  const canNote=isAdmin()||currentUser().shiftId===w.shiftId;
+  return `<div class="px" style="padding-top:12px">
+    <button class="btn btn-secondary btn-sm" onclick="backToEvalList()">⬅️ رجوع للقائمة</button>
+    <div class="card" style="margin-top:10px;text-align:center">
+      <b style="font-size:17px">${escapeHtml(w.name)}</b><div class="muted">${escapeHtml(w.code)} • ${escapeHtml(shiftById(w.shiftId)?.name||'—')}</div>
+      <div style="font-size:34px;font-weight:900;margin-top:8px">${ev.score}<span style="font-size:15px">/100</span></div>
+      <span class="badge ${r.cls}">${r.label}</span>
+    </div>
+    <input class="input" type="month" value="${_evalMonth}" onchange="setEvalMonth(this.value)">
+    <div class="card" style="margin-top:10px">
+      <div class="grid2" style="row-gap:10px">
+        <div>نسبة الحضور: <b>${ev.attendancePct}%</b></div>
+        <div>أيام العمل الفعلية بالشهر: <b>${ev.workedDays}</b></div>
+        <div>غياب كامل: <b>${c.absentFull}</b></div>
+        <div>غياب نصف يوم: <b>${c.absentHalf}</b></div>
+        <div>مرات إذن التأخير: <b>${c.lateEntry2h}</b></div>
+        <div>أذونات انصراف ساعتين: <b>${c.earlyLeave2h}</b></div>
+        <div>مأموريات: <b>${c.mission}</b></div>
+        <div>حالات مرض: <b>${c.sick}</b></div>
+        <div>مرض محتسب: <b>${c.sickCounted}</b></div>
+        <div>مرض غير محتسب: <b>${c.sickNotCounted}</b></div>
+        <div>ظروف طارئة: <b>${c.emergency}</b></div>
+        <div>جزاءات نصف يوم: <b>${c.penaltyHalf}</b></div>
+        <div>جزاءات يوم كامل: <b>${c.penaltyFull}</b></div>
+        <div>تأخير بدون اعتماد (ساعات): <b>${ev.rejectedLateHours}</b></div>
+        <div>انصراف بدون اعتماد (ساعات): <b>${ev.rejectedEarlyHours}</b></div>
+      </div>
+    </div>
+    <div class="card">
+      <b>📋 حالات الشهر المؤثرة في التقييم (${ev.from} → ${ev.to})</b>
+      <div style="margin-top:8px">
+        ${(() => {
+          const recs = state.workerStatuses.filter(r => r.workerId === w.id && r.date >= ev.from && r.date <= ev.to)
+            .slice().sort((a,b) => String(b.date+b.createdAt).localeCompare(a.date+a.createdAt));
+          if (!recs.length) return '<div class="muted">لا توجد حالات مسجلة لهذا العامل في هذا الشهر.</div>';
+          return recs.map(r => `<div class="card" style="margin-top:8px">
+            <div class="row"><span style="font-weight:700">${statusLabel(r.type)}</span>${statusApprovalBadge(r)}</div>
+            <div class="muted" style="margin-top:2px">${r.date}</div>
+            ${statusDetailLine(r) ? `<div class="muted" style="margin-top:2px">${escapeHtml(statusDetailLine(r))}</div>` : ''}
+            ${r.reason ? `<div class="muted" style="margin-top:2px">${escapeHtml(r.reason)}</div>` : ''}
+            ${r.type==='sick' ? `<div style="margin-top:6px"><span class="badge ${r.sickCounted?'warning':'info'}">${r.sickCounted?'🤒 محتسب في التقييم':'🤒 غير محتسب في التقييم'}</span></div>` : ''}
+            <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+              ${canEditStatusRecord(r) ? `<button class="btn btn-secondary btn-sm" onclick="openAddStatusModal('${r.workerId}','${r.id}')">✏️ تعديل</button>` : ''}
+              ${canDeleteStatusRecord(r) ? `<button class="btn btn-danger btn-sm" onclick="deleteStatus('${r.id}')">🗑️ حذف</button>` : ''}
+            </div>
+          </div>`).join('');
+        })()}
+      </div>
+    </div>
+    <div class="card">
+      <b>📝 ملاحظات المشرف</b>
+      <textarea class="input" id="evalNoteInput" rows="3" ${canNote?'':'disabled'}>${escapeHtml(noteVal)}</textarea>
+      ${canNote?`<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="saveEvalNote('${w.id}')">💾 حفظ الملاحظة</button>`:''}
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="openAddStatusModal('${w.id}')">➕ إضافة حالة لهذا العامل</button>
+  </div>`;
+}
+function saveEvalNote(workerId){
+  const v=document.getElementById('evalNoteInput').value.trim();
+  state.evalNotes[workerId]=v;
+  auditAdd('eval_note_update',{workerId});
+  queueSave();toast('تم حفظ الملاحظة');
+}
+function openEvalSettingsModal(){
+  if(!isAdmin())return;
+  const d=state.evalSettings.deductions;
+  openModal(`<div class="modal-header"><h3 style="margin:0">⚙️ إعدادات نقاط التقييم</h3><button class="icon-btn" onclick="closeModal()">✕</button></div>
+    <div class="muted" style="margin-bottom:8px">حدد عدد النقاط المخصومة من 100 لكل نوع مخالفة.</div>
+    ${Object.keys(d).map(k=>`<label class="muted" style="display:block;margin-top:8px">${evalSettingLabel(k)}</label><input class="input" type="number" min="0" id="evs_${k}" value="${d[k]}">`).join('')}
+    <button class="btn btn-primary" style="margin-top:14px" onclick="saveEvalSettings()">💾 حفظ الإعدادات</button>`);
+}
+function evalSettingLabel(k){return {absentFull:'غياب يوم كامل',absentHalf:'غياب نصف يوم',penaltyHalf:'جزاء نصف يوم',penaltyFull:'جزاء يوم كامل',lateUnapprovedPerHour:'تأخير بدون اعتماد (لكل ساعة)',earlyLeaveUnapprovedPerHour:'انصراف بدون اعتماد (لكل ساعة)',sick:'مرض محتسب'}[k]||k;}
+function saveEvalSettings(){
+  const d=state.evalSettings.deductions;
+  Object.keys(d).forEach(k=>{const el=document.getElementById('evs_'+k);const v=Number(el&&el.value);if(Number.isFinite(v)&&v>=0)d[k]=v;});
+  auditAdd('eval_settings_update',{});
+  queueSave();closeModal();toast('تم حفظ إعدادات التقييم');renderApp();
+}
+
+/* -------- شاشة ترتيب العمال -------- */
+let _rankMonth=localISO(new Date()).slice(0,7);
+let _rankShift='';
+let _rankQuery='';
+function setRankFilter(k,v){ if(k==='month')_rankMonth=v; if(k==='shiftId')_rankShift=v; if(k==='q')_rankQuery=v; renderApp(); }
+function computeRanking(){
+  let scope=isAdmin()?state.workers.filter(w=>w.active):state.workers.filter(w=>w.active&&w.shiftId===currentUser().shiftId);
+  if(_rankShift)scope=scope.filter(w=>w.shiftId===_rankShift);
+  if(_rankQuery){const q=_rankQuery.toLowerCase();scope=scope.filter(w=>w.name.toLowerCase().includes(q)||w.code.toLowerCase().includes(q));}
+  const list=scope.map(w=>({w,ev:computeWorkerEval(w.id,_rankMonth)}));
+  list.sort((a,b)=>b.ev.score-a.ev.score);
+  return list;
+}
+function renderRankingScreen(){
+  const list=computeRanking();
+  return `<div class="px" style="padding-top:12px">
+    <div class="row"><h3 style="margin:0">🏆 ترتيب العمال</h3><button class="btn btn-secondary btn-sm" onclick="printRankingReport()">🖨️ تقرير</button></div>
+    <input class="input" type="month" style="margin-top:10px" value="${_rankMonth}" onchange="setRankFilter('month',this.value)">
+    ${isAdmin()?`<select class="input" style="margin-top:8px" onchange="setRankFilter('shiftId',this.value)"><option value="">كل الشفتات</option>${state.shifts.map(s=>`<option value="${s.id}" ${_rankShift===s.id?'selected':''}>${s.icon||''} ${escapeHtml(s.name)}</option>`).join('')}</select>`:''}
+    <input class="input" style="margin-top:8px" placeholder="🔍 بحث بالاسم أو الكود" value="${escapeHtml(_rankQuery)}" oninput="setRankFilter('q',this.value)">
+    <div style="margin-top:12px">
+      ${list.length?list.map((x,i)=>{const r=ratingForScore(x.ev.score);return `<div class="card"><div class="row"><b>#${i+1} ${escapeHtml(x.w.name)}</b><span class="badge ${r.cls}">${r.label}</span></div>
+        <div class="muted" style="margin-top:2px">${escapeHtml(x.w.code)} • ${escapeHtml(shiftById(x.w.shiftId)?.name||'—')}</div>
+        <div class="row" style="margin-top:6px"><span>الدرجة: <b>${x.ev.score}/100</b></span><span>الحضور: <b>${x.ev.attendancePct}%</b></span></div>
+        <div class="muted" style="margin-top:4px">غياب: ${x.ev.counts.absentFull} كامل / ${x.ev.counts.absentHalf} نصف • تأخير: ${x.ev.counts.lateEntry2h} • جزاءات: ${x.ev.counts.penaltyHalf+x.ev.counts.penaltyFull}</div>
+      </div>`;}).join(''):'<div class="card">لا توجد بيانات لعرضها.</div>'}
+    </div>
+  </div>`;
+}
+function printRankingReport(){
+  const list=computeRanking();
+  if(!list.length){toast('لا توجد بيانات لطباعتها');return;}
+  const rows=list.map((x,i)=>[String(i+1),x.w.name,x.w.code,shiftById(x.w.shiftId)?.name||'—',String(x.ev.score),plainLabel(ratingForScore(x.ev.score).label),x.ev.attendancePct+'%',String(x.ev.counts.absentFull+x.ev.counts.absentHalf),String(x.ev.counts.lateEntry2h),String(x.ev.counts.penaltyHalf+x.ev.counts.penaltyFull)]);
+  canvasReport('🏆 ترتيب العمال حسب الانضباط والتقييم',['#','العامل','الكود','الشفت','الدرجة','التصنيف','الحضور','الغياب','التأخير','الجزاءات'],rows,'تقرير-ترتيب-العمال');
+}
+
+/* -------- سجل التعديلات -------- */
+function renderAuditLogScreen(){
+  if(!isAdmin())return `<div class="px" style="padding-top:12px"><div class="card">هذه الصفحة للمشرف الرئيسي فقط.</div></div>`;
+  const rows=state.auditLog.slice(0,150);
+  return `<div class="px" style="padding-top:12px">
+    <div class="row"><h3 style="margin:0">🔐 سجل التعديلات</h3><button class="btn btn-secondary btn-sm" onclick="setScreen('workerEval')">⬅️ رجوع</button></div>
+    <div style="margin-top:12px">${rows.length?rows.map(a=>`<div class="card"><div class="row"><b>${auditActionLabel(a.action)}</b><span class="muted">${new Date(a.at).toLocaleString('ar-EG')}</span></div><div class="muted" style="margin-top:4px">بواسطة: ${escapeHtml(a.by||'—')}</div>${a.action==='sick_toggle'?`<div class="muted" style="margin-top:4px">من: ${a.before?'محتسب':'غير محتسب'} ← إلى: ${a.after?'محتسب':'غير محتسب'}</div>`:''}</div>`).join(''):'<div class="card">لا يوجد سجل تعديلات بعد.</div>'}</div>
+  </div>`;
+}
+
+/* -------- حذف عامل (👷 إدارة العمال) -------- */
+function deleteWorker(id){
+  const w=workerById(id); if(!w)return;
+  if(!isAdmin()){toast('غير مصرح لك بحذف العمال');return;}
+  if(!confirm(`هل أنت متأكد من حذف العامل ${w.name} نهائيًا؟ لا يمكن التراجع عن هذا الإجراء.`))return;
+  state.workers=state.workers.filter(x=>x.id!==id);
+  auditAdd('worker_delete',{workerId:id,name:w.name,code:w.code});
+  syncMark('worker_delete',{id});
+  queueSave();toast('تم حذف العامل نهائيًا');renderApp();
+}
+function renderWorkerCard(w){
+  const shift=shiftById(w.shiftId), dept=DEPARTMENTS.find(d=>d.key===w.deptKey);
+  return `<div class="card worker-card-item" data-name="${escapeHtml(w.name)}" data-code="${escapeHtml(w.code)}">
+    <div class="row"><div><b style="font-size:15px;display:block">${escapeHtml(w.name)}</b><span class="muted">${escapeHtml(w.code)}</span></div><span class="badge ${w.active?'success':'danger'}">${w.active?'🟢 نشط':'🔴 غير نشط'}</span></div>
+    <div style="margin-top:10px;font-size:12.5px;display:grid;grid-template-columns:1fr 1fr;gap:6px"><div>الشفت: <b>${shift?escapeHtml(shift.name):'غير محدد'}</b></div><div>القسم: <b>${dept?escapeHtml(dept.ar):'غير محدد'}</b></div></div>
+    <div style="margin-top:12px;display:flex;gap:6px"><button class="btn btn-secondary btn-sm" style="flex:1" onclick="openEditWorkerModal('${w.id}')">✏️ تعديل</button><button class="btn ${w.active?'btn-danger':'btn-primary'} btn-sm" onclick="toggleWorkerActive('${w.id}')">${w.active?'تعطيل':'تفعيل'}</button></div>
+    <div style="margin-top:8px;display:flex;gap:6px"><button class="btn btn-secondary btn-sm" style="flex:1" onclick="openAddStatusModal('${w.id}')">📋 حالة</button><button class="btn btn-secondary btn-sm" style="flex:1" onclick="openWorkerEvalDetailScreen('${w.id}')">📊 تقييم</button><button class="btn btn-danger btn-sm" onclick="deleteWorker('${w.id}')">🗑️ حذف</button></div>
+  </div>`;
+}
+
+/* -------- ربط الشاشات الجديدة بالتنقل والداشبورد (بدون حذف أي شيء موجود) -------- */
+const _oldRenderToolsCards_perm=renderToolsCards;
+renderToolsCards=function(){
+  const base=_oldRenderToolsCards_perm();
+  const extra=`<button class="btn btn-secondary" onclick="setScreen('workerStatus')">📋 الإذونات والحالات</button><button class="btn btn-secondary" onclick="setScreen('workerEval')">📊 تقييم وانضباط العمال</button><button class="btn btn-secondary" onclick="setScreen('workerRanking')">🏆 ترتيب العمال</button>`;
+  return base.replace('</div></div>', extra+'</div></div>');
+};
+
+const _oldRenderApp_perm=renderApp;
+renderApp=function(){
+  ensureV2State();
+  const u=currentUser();
+  const newScreens=['workerStatus','workerEval','workerRanking','auditLog'];
+  if(u && u.id!==undefined && newScreens.includes(state.activeScreen)){
+    document.documentElement.setAttribute('data-theme', state.theme);
+    document.getElementById('themeBtn').textContent = state.theme==='dark'?'☀️':'🌙';
+    document.getElementById('appHeader').style.display='flex';
+    document.getElementById('bottomNav').style.display='flex';
+    document.getElementById('headerRole').textContent = `${u.name} (${u.role==='admin'?'مشرف رئيسي':'مسؤول شفت'})`;
+    renderNav();
+    const app=document.getElementById('app');
+    if(state.activeScreen==='workerStatus')app.innerHTML=renderStatusScreen();
+    else if(state.activeScreen==='workerEval')app.innerHTML=renderEvalScreen();
+    else if(state.activeScreen==='workerRanking')app.innerHTML=renderRankingScreen();
+    else if(state.activeScreen==='auditLog')app.innerHTML=renderAuditLogScreen();
+    attachEvents();
+    return;
+  }
+  _oldRenderApp_perm();
+};
+
+/* Start only after every V2 override has been installed. */
+(async function initApp(){
+  await loadState();
+  ensureV2State();
+  await migratePlaintextPasswords();
+  renderApp();
+  attachRealtimeSync();
+})();
+
+</script>
+</body>
+</html>
