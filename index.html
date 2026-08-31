@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>نظام إدارة عمليات وتوزيع العمال - مخزن سعودي ماركت</title>
 <link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#FF6A1A">
+<meta name="theme-color" content="#0D2040">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -17,17 +17,25 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
 <script>
   const firebaseConfig = {
-    apiKey: "AIzaSyA83blW4Gbfclml0E3lGzNXcJEo7xRjaxc",
-    authDomain: "saudi-warehouse.firebaseapp.com",
-    projectId: "saudi-warehouse",
-    storageBucket: "saudi-warehouse.firebasestorage.app",
-    messagingSenderId: "81524464011",
-    appId: "1:81524464011:web:11a07fc97b5df86525378e"
+    apiKey: "AIzaSyBfGrwCZsJZJO-Gs97Jymzb3-ufwANBOeU",
+    authDomain: "warehouse-labor-management.firebaseapp.com",
+    projectId: "warehouse-labor-management",
+    storageBucket: "warehouse-labor-management.firebasestorage.app",
+    messagingSenderId: "367624164624",
+    appId: "1:367624164624:web:b326906fe9bcd468898195"
   };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
+  // مصادقة مجهولة (Anonymous Auth): تفتح جلسة Firebase حقيقية قبل السماح
+  // بأي قراءة/كتابة على Firestore، حتى تنطبق قواعد الحماية request.auth != null.
+  // لازم تكون خدمة "Anonymous" مفعّلة من Firebase Console > Authentication > Sign-in method.
+  const authReadyPromise = new Promise(resolve => {
+    firebase.auth().onAuthStateChanged(user => { if (user) resolve(user); });
+  });
+  firebase.auth().signInAnonymously().catch(e => console.error('Firebase auth error:', e));
   try { db.enablePersistence({ synchronizeTabs: true }).catch(()=>{}); } catch(e) {}
 </script>
 <style>
@@ -3056,6 +3064,7 @@ renderApp=function(){
   ensureV2State();
   await migratePlaintextPasswords();
   renderApp();
+  await authReadyPromise;
   attachRealtimeSync();
 })();
 
