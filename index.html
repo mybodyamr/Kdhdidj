@@ -3418,11 +3418,58 @@ function filterPalletCards() {
   });
 }
 
+/* -------- طباعة تقرير البلتات كصورة (نفس نظام canvasReport المستخدم في باقي التقارير) -------- */
+function printPalletsReport(){
+  const rows = state.pallets.slice()
+    .sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)))
+    .slice(0,150)
+    .map(p=>[
+      '#'+p.opNumber,
+      plainLabel(palletMovementInfo(p.movementType).label),
+      p.partyName||'—',
+      p.location||'—',
+      String(p.largeCount||0),
+      String(p.smallCount||0),
+      String(p.total||0),
+      p.createdBy||'—',
+      new Date(p.createdAt).toLocaleDateString('ar-EG')
+    ]);
+  if(!rows.length){ toast('لا توجد عمليات بلتات للتقرير'); return; }
+  canvasReport('🪵 تقرير عمليات البلتات', ['رقم العملية','النوع','الاسم','المكان','كبيرة','صغيرة','الإجمالي','أنشأها','التاريخ'], rows, 'تقرير-البلتات');
+}
+
+/* -------- تصدير سريع لسجل البلتات كملف Excel مستقل (زي زرار Excel بتاع ملاحظات المخزن) -------- */
+function exportPalletsExcel(){
+  const rows = state.pallets.slice()
+    .sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)))
+    .map(p=>[
+      p.opNumber,
+      plainLabel(palletMovementInfo(p.movementType).label),
+      p.partyName||'—',
+      p.location||'—',
+      p.largeCount||0,
+      p.smallCount||0,
+      p.total||0,
+      p.createdBy||'—',
+      new Date(p.createdAt).toLocaleString('ar-EG'),
+      p.updatedBy||'—',
+      p.updatedAt ? new Date(p.updatedAt).toLocaleString('ar-EG') : ''
+    ]);
+  if(!rows.length){ toast('لا توجد عمليات بلتات للتصدير'); return; }
+  exportRowsToExcel('سجل البلتات', ['رقم العملية','النوع','الاسم','المكان','كبيرة','صغيرة','الإجمالي','أنشأها','تاريخ الإنشاء','آخر تعديل بواسطة','تاريخ التعديل'], rows, `سجل-البلتات-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
 function renderPalletsLog() {
   const rows = state.pallets.slice().sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
   const totalLarge = rows.reduce((s, p) => s + (Number(p.largeCount) || 0), 0);
   const totalSmall = rows.reduce((s, p) => s + (Number(p.smallCount) || 0), 0);
-  return `<div class="card">
+  return `<div class="row" style="margin-bottom:8px;">
+      <h4 style="margin:0;">📋 سجل البلتات</h4>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${rows.length ? `<button class="btn btn-secondary btn-sm" onclick="printPalletsReport()">🖨️ تقرير</button><button class="btn btn-secondary btn-sm" onclick="exportPalletsExcel()">📥 Excel</button>` : ''}
+      </div>
+    </div>
+    <div class="card">
       <input class="input" id="palletSearch" placeholder="🔍 بحث بالاسم / المكان / المستخدم / رقم العملية" oninput="filterPalletCards()">
       <div class="grid2" style="margin-top:8px;">
         <select class="input" id="palletTypeFilter" onchange="filterPalletCards()">
@@ -3453,6 +3500,22 @@ function renderPalletsScreen() {
     ${body}
   </div>`;
 }
+
+/* -------- إضافة شيت "Pallets" لملف التصدير الشامل (شاشة 📊 تصدير / استيراد Excel) -------- */
+/* بدون تعديل buildExportWorkbook الأصلية: نستدعيها زي ما هي ونضيف شيت إضافي على الـ workbook الناتج. */
+const _oldBuildExportWorkbook_pallets = buildExportWorkbook;
+buildExportWorkbook = function () {
+  const wb = _oldBuildExportWorkbook_pallets();
+  const rows = (state.pallets || []).length ? state.pallets.map(p => ({
+    id: p.id, opNumber: p.opNumber, movementType: p.movementType, partyName: p.partyName || '', location: p.location || '',
+    largeCount: p.largeCount || 0, smallCount: p.smallCount || 0, total: p.total || 0,
+    createdBy: p.createdBy || '', createdAt: p.createdAt || '', updatedBy: p.updatedBy || '', updatedAt: p.updatedAt || ''
+  })) : [{}];
+  const ws = XLSX.utils.json_to_sheet(rows);
+  styleSheet(ws, rows);
+  XLSX.utils.book_append_sheet(wb, ws, 'Pallets');
+  return wb;
+};
 
 /* -------- ربط الشاشة بالتنقل والداشبورد (بدون حذف أي شيء موجود) -------- */
 const _oldRenderToolsCards_pallets = renderToolsCards;
