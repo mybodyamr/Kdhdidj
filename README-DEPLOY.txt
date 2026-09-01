@@ -10,5 +10,14 @@ Firestore paths used:
 - leaves/*
 - warehouseTasks/*
 - shiftChanges/*
+- pallets/*            (new: Pallet Management add-on)
+- workerStatuses/*
+- auditLog/*
+- loadUnloadLog/*
+
+Make sure Firestore Security Rules (firestore.rules) are deployed/published in
+Firebase Console — this update adds rules for "pallets" plus three other
+collections used by the app that had no rule before (workerStatuses, auditLog,
+loadUnloadLog), which were silently failing to sync.
 
 After deployment, hard-refresh/clear the old site cache once if the PWA keeps showing the old version.

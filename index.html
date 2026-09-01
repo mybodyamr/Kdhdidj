@@ -3197,6 +3197,294 @@ renderApp=function(){
   _oldRenderApp_perm();
 };
 
+/* ================================================================================
+   🪵 إضافة جديدة (بدون حذف أو تعديل أي كود سابق): إدارة البلتات
+   - تسجيل بلتات شركات / بلتات مخازن خارجية (كبيرة + صغيرة، إجمالي تلقائي)
+   - تصوير المكان إلزامي (نفس نظام الكاميرا وضغط الصور المستخدم في ملاحظات المخزن)
+   - سجل بلتات + بحث وفلترة (نفس أسلوب البحث الفوري في شاشة العمال/الإجازات)
+   - نفس نظام الصلاحيات الحالي: الأدمن كامل الصلاحيات، مسؤول الشفت بدون حذف
+   - Audit Log كامل (قبل/بعد) بإعادة استخدام state.auditLog الموجود بالفعل
+   - التخزين والمزامنة عبر GROWING_COLLECTIONS (نفس آلية warehouseTasks/leaves)
+     وهو ما يوفر تلقائيًا: كل عملية doc بمعرف فريد، عدم تكرار الإرسال (set على
+     نفس الـ id بدل إنشاء نسخة جديدة)، وعمل أوفلاين حقيقي عبر Firestore
+     enablePersistence + localStorage snapshot المستخدَمين أصلاً في المشروع.
+   ================================================================================ */
+
+/* -------- state -------- */
+const _oldEnsureV2State_pallets = ensureV2State;
+ensureV2State = function () {
+  _oldEnsureV2State_pallets();
+  state.pallets = Array.isArray(state.pallets) ? state.pallets : [];
+  state.palletCounter = Number.isFinite(state.palletCounter) ? state.palletCounter : 100;
+};
+ensureV2State();
+if (!CORE_FIELDS.includes('palletCounter')) CORE_FIELDS.push('palletCounter');
+if (!GROWING_COLLECTIONS.includes('pallets')) { GROWING_COLLECTIONS.push('pallets'); _syncCache.pallets = {}; }
+
+const _oldGetDefaultState_pallets = getDefaultState;
+getDefaultState = function () {
+  const s = _oldGetDefaultState_pallets();
+  s.pallets = [];
+  s.palletCounter = 100;
+  return s;
+};
+
+/* -------- سجل التعديلات: تسميات الحركات الجديدة (بدون فقدان التسميات القديمة) -------- */
+const _oldAuditActionLabel_pallets = auditActionLabel;
+auditActionLabel = function (a) {
+  const map = {
+    pallet_create: '🪵 تسجيل عملية بلتات',
+    pallet_update: '✏️ تعديل عملية بلتات',
+    pallet_delete: '🗑️ حذف عملية بلتات'
+  };
+  return map[a] || _oldAuditActionLabel_pallets(a);
+};
+
+/* -------- الصلاحيات -------- */
+function canManagePallets() { const u = currentUser(); return !!u && (u.role === 'admin' || u.role === 'supervisor'); }
+function canDeletePallet() { return isAdmin(); }
+
+/* -------- تعريف نوع الحركة -------- */
+const PALLET_MOVEMENT_TYPES = [
+  { key: 'company', label: '🏢 بلتات شركات', nameLabel: 'اسم الشركة', namePlaceholder: 'مثال: شركة ABC' },
+  { key: 'external', label: '🏭 بلتات مخازن خارجية', nameLabel: 'اسم المخزن', namePlaceholder: 'مثال: مخزن X' }
+];
+function palletMovementInfo(key) { return PALLET_MOVEMENT_TYPES.find(t => t.key === key) || PALLET_MOVEMENT_TYPES[0]; }
+function palletTotal(large, small) { return (Number(large) || 0) + (Number(small) || 0); }
+
+/* -------- حالة واجهة (تبويب حالي + وضع تعديل) -------- */
+let _palletsTab = 'company';
+let _palletEditId = '';
+function setPalletsTab(tab) { _palletsTab = tab; _palletEditId = ''; renderApp(); }
+
+/* -------- نموذج تسجيل/تعديل عملية -------- */
+function onPalletCountsChange() {
+  const large = Number(document.getElementById('palletLarge')?.value) || 0;
+  const small = Number(document.getElementById('palletSmall')?.value) || 0;
+  const totalEl = document.getElementById('palletTotalPreview');
+  if (totalEl) totalEl.textContent = String(large + small);
+}
+
+function renderPalletForm(type, editId) {
+  const info = palletMovementInfo(type);
+  const editRec = editId ? state.pallets.find(p => p.id === editId) : null;
+  const photoVal = editRec && editRec.photo ? editRec.photo : '';
+  return `<div class="card">
+    <div style="font-weight:800;margin-bottom:8px;">${editRec ? '✏️ تعديل عملية #' + editRec.opNumber : info.label}</div>
+    <label class="muted" style="display:block;">${info.nameLabel}</label>
+    <input class="input" id="palletPartyName" placeholder="${info.namePlaceholder}" value="${editRec ? escapeHtml(editRec.partyName) : ''}">
+    <label class="muted" style="display:block;margin-top:8px;">المكان</label>
+    <input class="input" id="palletLocation" placeholder="مثال: مخزن 1" value="${editRec ? escapeHtml(editRec.location) : ''}">
+    <div class="grid2" style="margin-top:8px;">
+      <div>
+        <label class="muted" style="display:block;">🟫 عدد البلتات الكبيرة</label>
+        <input class="input" type="number" min="0" inputmode="numeric" id="palletLarge" placeholder="0" value="${editRec ? editRec.largeCount : ''}" oninput="onPalletCountsChange()">
+      </div>
+      <div>
+        <label class="muted" style="display:block;">🟨 عدد البلتات الصغيرة</label>
+        <input class="input" type="number" min="0" inputmode="numeric" id="palletSmall" placeholder="0" value="${editRec ? editRec.smallCount : ''}" oninput="onPalletCountsChange()">
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px;">
+      <span class="muted">الإجمالي</span>
+      <b id="palletTotalPreview">${editRec ? editRec.total : 0}</b>
+    </div>
+    <label class="muted" style="display:block;margin-top:10px;">📷 تصوير المكان ${editRec ? '(اتركه بدون تصوير جديد للاحتفاظ بالصورة الحالية)' : '(مطلوب)'}</label>
+    <input class="input" type="file" accept="image/*" capture="environment" onchange="handlePhotoFile(event,'palletPhotoPreview')" id="palletPhotoInput">
+    <img id="palletPhotoPreview" class="photo-preview" src="${photoVal}" data-value="${photoVal}" style="display:${photoVal ? 'block' : 'none'}">
+    <div class="grid2" style="margin-top:12px;">
+      <button class="btn btn-primary" onclick="savePallet('${type}','${editId || ''}')">💾 حفظ العملية</button>
+      ${editRec ? `<button class="btn btn-secondary" onclick="setPalletsTab('log')">إلغاء</button>` : ''}
+    </div>
+  </div>`;
+}
+
+function savePallet(type, editId) {
+  if (!canManagePallets()) { toast('غير مصرح لك بهذا الإجراء'); return; }
+  const info = palletMovementInfo(type);
+  const partyName = document.getElementById('palletPartyName')?.value.trim() || '';
+  const location = document.getElementById('palletLocation')?.value.trim() || '';
+  const large = Math.max(0, Math.floor(Number(document.getElementById('palletLarge')?.value) || 0));
+  const small = Math.max(0, Math.floor(Number(document.getElementById('palletSmall')?.value) || 0));
+  const photo = document.getElementById('palletPhotoPreview')?.dataset.value || '';
+
+  if (!partyName) { toast(`اكتب ${info.nameLabel} أولًا`); return; }
+  if (!location) { toast('اكتب المكان أولًا'); return; }
+  if (large === 0 && small === 0) { toast('أدخل عدد بلتات كبيرة أو صغيرة على الأقل'); return; }
+  if (!photo) { toast('صوّر المكان أولًا'); return; }
+
+  const total = palletTotal(large, small);
+
+  if (editId) {
+    const rec = state.pallets.find(p => p.id === editId);
+    if (!rec) { toast('تعذر إيجاد العملية'); return; }
+    const before = { partyName: rec.partyName, location: rec.location, largeCount: rec.largeCount, smallCount: rec.smallCount, total: rec.total };
+    rec.partyName = partyName; rec.location = location; rec.largeCount = large; rec.smallCount = small; rec.total = total; rec.photo = photo;
+    rec.updatedBy = currentUser().name; rec.updatedAt = new Date().toISOString();
+    const after = { partyName, location, largeCount: large, smallCount: small, total };
+    auditAdd('pallet_update', { recordId: rec.id, opNumber: rec.opNumber, before, after });
+    queueSave();
+    toast('✅ تم تحديث العملية بنجاح');
+  } else {
+    state.palletCounter = (Number(state.palletCounter) || 100) + 1;
+    const rec = {
+      id: 'PLT-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+      opNumber: state.palletCounter,
+      movementType: type,
+      partyName, location,
+      largeCount: large, smallCount: small, total,
+      photo,
+      createdBy: currentUser().name, createdAt: new Date().toISOString(),
+      updatedBy: '', updatedAt: ''
+    };
+    state.pallets.unshift(rec);
+    auditAdd('pallet_create', { recordId: rec.id, opNumber: rec.opNumber, movementType: type, partyName, location, total });
+    queueSave();
+    toast(`✅ تم تسجيل العملية رقم ${rec.opNumber}`);
+  }
+  _palletEditId = '';
+  setPalletsTab('log');
+}
+
+function openEditPallet(id) {
+  if (!canManagePallets()) { toast('غير مصرح لك بالتعديل'); return; }
+  const rec = state.pallets.find(p => p.id === id); if (!rec) return;
+  _palletEditId = id; _palletsTab = rec.movementType;
+  renderApp();
+}
+
+function deletePallet(id) {
+  if (!canDeletePallet()) { toast('حذف عمليات البلتات يقتصر على المشرف الرئيسي'); return; }
+  const rec = state.pallets.find(p => p.id === id); if (!rec) return;
+  if (!confirm('هل أنت متأكد من حذف هذه العملية؟')) return;
+  state.pallets = state.pallets.filter(p => p.id !== id);
+  auditAdd('pallet_delete', { recordId: id, opNumber: rec.opNumber, movementType: rec.movementType, partyName: rec.partyName, total: rec.total });
+  queueSave();
+  toast('تم حذف العملية');
+  renderApp();
+}
+
+/* -------- سجل تعديلات عملية بعينها (للأدمن فقط) -------- */
+function openPalletHistory(id) {
+  if (!isAdmin()) { toast('سجل التعديلات متاح للمشرف الرئيسي فقط'); return; }
+  const rec = state.pallets.find(p => p.id === id);
+  const entries = state.auditLog.filter(a => a.recordId === id);
+  const rows = entries.map(a => {
+    let diff = '';
+    if (a.action === 'pallet_update' && a.before && a.after) {
+      const parts = [];
+      if (a.before.partyName !== a.after.partyName) parts.push(`الاسم: ${escapeHtml(a.before.partyName)} → ${escapeHtml(a.after.partyName)}`);
+      if (a.before.location !== a.after.location) parts.push(`المكان: ${escapeHtml(a.before.location)} → ${escapeHtml(a.after.location)}`);
+      if (a.before.largeCount !== a.after.largeCount) parts.push(`الكبيرة: ${a.before.largeCount} → ${a.after.largeCount}`);
+      if (a.before.smallCount !== a.after.smallCount) parts.push(`الصغيرة: ${a.before.smallCount} → ${a.after.smallCount}`);
+      diff = parts.map(p => `<div style="font-size:12px;margin-top:2px;">${p}</div>`).join('');
+    }
+    return `<div class="card"><div class="row"><b>${auditActionLabel(a.action)}</b><span class="muted" style="font-size:11px;">${new Date(a.at).toLocaleString('ar-EG')}</span></div><div class="muted" style="margin-top:4px;">بواسطة: ${escapeHtml(a.by || '—')}</div>${diff}</div>`;
+  }).join('');
+  openModal(`<div class="modal-header"><h3 style="margin:0">🕘 سجل تعديلات العملية #${rec ? rec.opNumber : ''}</h3><button class="icon-btn" onclick="closeModal()">✕</button></div>${rows || '<div class="card">لا يوجد تعديلات مسجلة على هذه العملية.</div>'}`);
+}
+
+/* -------- بطاقة عملية + سجل البلتات + البحث والفلترة (فلترة DOM فورية بدون فقد التركيز، بنفس أسلوب filterWorkerCards) -------- */
+function renderPalletCard(rec) {
+  const info = palletMovementInfo(rec.movementType);
+  const q = `${rec.partyName} ${rec.location} ${rec.createdBy} ${rec.updatedBy || ''} ${rec.opNumber}`.toLowerCase();
+  return `<div class="card pallet-card-item" data-q="${escapeHtml(q)}" data-type="${rec.movementType}" data-date="${String(rec.createdAt || '').slice(0, 10)}">
+    <div class="row"><b>#${rec.opNumber} — ${info.label}</b><span class="muted" style="font-size:11px;">${new Date(rec.createdAt).toLocaleString('ar-EG')}</span></div>
+    <div style="margin-top:6px;font-size:13px;"><b>${escapeHtml(rec.partyName)}</b> — ${escapeHtml(rec.location)}</div>
+    <div class="grid2" style="margin-top:8px;font-size:12.5px;">
+      <div>🟫 كبيرة: <b>${rec.largeCount}</b></div>
+      <div>🟨 صغيرة: <b>${rec.smallCount}</b></div>
+    </div>
+    <div class="row" style="margin-top:6px;"><span class="muted">الإجمالي</span><b>${rec.total}</b></div>
+    ${rec.photo ? `<img class="photo-preview" src="${rec.photo}">` : ''}
+    <div class="muted" style="margin-top:6px;font-size:11px;">أنشأها: ${escapeHtml(rec.createdBy || '')}${rec.updatedBy ? ` • آخر تعديل: ${escapeHtml(rec.updatedBy)} (${new Date(rec.updatedAt).toLocaleString('ar-EG')})` : ''}</div>
+    <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+      ${canManagePallets() ? `<button class="btn btn-secondary btn-sm" style="flex:1;" onclick="openEditPallet('${rec.id}')">✏️ تعديل</button>` : ''}
+      ${isAdmin() ? `<button class="btn btn-secondary btn-sm" onclick="openPalletHistory('${rec.id}')">🕘 السجل</button>` : ''}
+      ${canDeletePallet() ? `<button class="btn btn-danger btn-sm" onclick="deletePallet('${rec.id}')">🗑️ حذف</button>` : ''}
+    </div>
+  </div>`;
+}
+
+function filterPalletCards() {
+  const q = (document.getElementById('palletSearch')?.value || '').toLowerCase().trim();
+  const type = document.getElementById('palletTypeFilter')?.value || '';
+  const date = document.getElementById('palletDateFilter')?.value || '';
+  document.querySelectorAll('.pallet-card-item').forEach(card => {
+    const okQ = !q || card.dataset.q.includes(q);
+    const okType = !type || card.dataset.type === type;
+    const okDate = !date || card.dataset.date === date;
+    card.style.display = (okQ && okType && okDate) ? 'block' : 'none';
+  });
+}
+
+function renderPalletsLog() {
+  const rows = state.pallets.slice().sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+  const totalLarge = rows.reduce((s, p) => s + (Number(p.largeCount) || 0), 0);
+  const totalSmall = rows.reduce((s, p) => s + (Number(p.smallCount) || 0), 0);
+  return `<div class="card">
+      <input class="input" id="palletSearch" placeholder="🔍 بحث بالاسم / المكان / المستخدم / رقم العملية" oninput="filterPalletCards()">
+      <div class="grid2" style="margin-top:8px;">
+        <select class="input" id="palletTypeFilter" onchange="filterPalletCards()">
+          <option value="">كل الأنواع</option>
+          <option value="company">🏢 شركات</option>
+          <option value="external">🏭 مخازن خارجية</option>
+        </select>
+        <input class="input" type="date" id="palletDateFilter" onchange="filterPalletCards()">
+      </div>
+    </div>
+    <div class="row"><span class="muted">${rows.length} عملية مسجلة</span><span class="muted">إجمالي: 🟫 ${totalLarge} • 🟨 ${totalSmall}</span></div>
+    <div style="margin-top:8px;">${rows.length ? rows.map(renderPalletCard).join('') : '<div class="card">لا توجد عمليات مسجلة بعد.</div>'}</div>`;
+}
+
+/* -------- الشاشة الرئيسية لإدارة البلتات -------- */
+function renderPalletsScreen() {
+  const tab = _palletsTab;
+  const body = tab === 'log'
+    ? renderPalletsLog()
+    : (canManagePallets() ? renderPalletForm(tab, _palletEditId) : '<div class="card">إضافة/تعديل العمليات متاح للمسؤولين فقط.</div>');
+  return `<div class="px" style="padding-top:12px;">
+    <h3 style="margin:0 0 12px;">🪵 إدارة البلتات</h3>
+    <div class="grid2" style="margin-bottom:10px;">
+      <button class="btn ${tab === 'company' ? 'btn-primary' : 'btn-secondary'}" onclick="setPalletsTab('company')">🏢 بلتات شركات</button>
+      <button class="btn ${tab === 'external' ? 'btn-primary' : 'btn-secondary'}" onclick="setPalletsTab('external')">🏭 بلتات مخازن خارجية</button>
+    </div>
+    <button class="btn ${tab === 'log' ? 'btn-primary' : 'btn-secondary'}" style="width:100%;margin-bottom:12px;" onclick="setPalletsTab('log')">📋 سجل البلتات (${state.pallets.length})</button>
+    ${body}
+  </div>`;
+}
+
+/* -------- ربط الشاشة بالتنقل والداشبورد (بدون حذف أي شيء موجود) -------- */
+const _oldRenderToolsCards_pallets = renderToolsCards;
+renderToolsCards = function () {
+  return _oldRenderToolsCards_pallets() + `<div class="card" style="margin-top:12px;">
+    <b>🪵 إدارة البلتات</b>
+    <div class="grid2" style="margin-top:10px;">
+      <button class="btn btn-secondary" onclick="_palletsTab='company';_palletEditId='';setScreen('pallets')">🏢 بلتات شركات</button>
+      <button class="btn btn-secondary" onclick="_palletsTab='external';_palletEditId='';setScreen('pallets')">🏭 مخازن خارجية</button>
+    </div>
+    <button class="btn btn-secondary" style="width:100%;margin-top:8px;" onclick="_palletsTab='log';_palletEditId='';setScreen('pallets')">📋 سجل البلتات</button>
+  </div>`;
+};
+
+const _oldRenderApp_pallets = renderApp;
+renderApp = function () {
+  ensureV2State();
+  const u = currentUser();
+  if (u && u.id !== undefined && state.activeScreen === 'pallets') {
+    document.documentElement.setAttribute('data-theme', state.theme);
+    document.getElementById('themeBtn').textContent = state.theme === 'dark' ? '☀️' : '🌙';
+    document.getElementById('appHeader').style.display = 'flex';
+    document.getElementById('bottomNav').style.display = 'flex';
+    document.getElementById('headerRole').textContent = `${u.name} (${u.role === 'admin' ? 'مشرف رئيسي' : 'مسؤول شفت'})`;
+    renderNav();
+    document.getElementById('app').innerHTML = renderPalletsScreen();
+    attachEvents();
+    return;
+  }
+  _oldRenderApp_pallets();
+};
+
 /* Start only after every V2 override has been installed. */
 (async function initApp(){
   await loadState();
