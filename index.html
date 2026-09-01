@@ -199,6 +199,12 @@ const DEPARTMENTS = [
   { key: 'floor', ar: '📦 الأرضية / الأقفاص', en: 'Floor / Cages' }
 ];
 
+const JOB_TITLES = [
+  { key: 'senior', ar: 'عامل أول مخازن مركزية' },
+  { key: 'worker', ar: 'عامل مخازن مركزية' }
+];
+function jobTitleLabel(key){ const j = JOB_TITLES.find(x=>x.key===key); return j ? j.ar : 'غير محدد'; }
+
 const ATTENDANCE_OPTIONS = [
   { key: 'present', label: '🟢 حاضر', tag: 'حاضر' },
   { key: 'absent', label: '🔴 غياب بدون إذن', tag: 'غياب بدون إذن' },
@@ -222,16 +228,50 @@ const INITIAL_USERS = [
 ];
 
 const INITIAL_WORKERS = [
-  { id: 'W-001', name: 'أحمد سعيد عبد العزيز', code: 'W-001', shiftId: 'shift_m', deptKey: 'picking', active: true },
-  { id: 'W-002', name: 'حمدي رجب يونس', code: 'W-002', shiftId: 'shift_m', deptKey: 'picking', active: true },
-  { id: 'W-003', name: 'مصطفى سعيد محمد', code: 'W-003', shiftId: 'shift_m', deptKey: 'shipping', active: true },
-  { id: 'W-004', name: 'محمد عبد المجيد محمد', code: 'W-004', shiftId: 'shift_m', deptKey: 'scanning', active: true },
-  { id: 'W-005', name: 'السيد ياسر محمد', code: 'W-005', shiftId: 'shift_m', deptKey: 'floor', active: true },
-  { id: 'W-006', name: 'أحمد بدر عبد الرحيم', code: 'W-006', shiftId: 'shift_e', deptKey: 'picking', active: true },
-  { id: 'W-007', name: 'ضياء محمد قاسم', code: 'W-007', shiftId: 'shift_e', deptKey: 'shipping', active: true },
-  { id: 'W-008', name: 'طه فتحي فرغلي', code: 'W-008', shiftId: 'shift_e', deptKey: 'scanning', active: true },
-  { id: 'W-009', name: 'محمد فوزي علي', code: 'W-009', shiftId: 'shift_e', deptKey: 'floor', active: true },
-  { id: 'W-010', name: 'عمرو كامل عبد الصمد', code: 'W-010', shiftId: 'shift_e', deptKey: 'picking', active: true }
+  { id: 'W-10860', name: 'فرج محمد فرج محمد', code: '10860', shiftId: null, deptKey: null, jobTitle: 'senior', active: true },
+  { id: 'W-11718', name: 'مصطفى سعيد محمد حسن', code: '11718', shiftId: null, deptKey: null, jobTitle: 'senior', active: true },
+  { id: 'W-20741', name: 'رضوان حسين', code: '20741', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-20677', name: 'محمود عبدالحميد', code: '20677', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-7433', name: 'أحمد محمد عباس أبو داغر', code: '7433', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-19111', name: 'عيد جمعه', code: '19111', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-20397', name: 'عبدالرحمن مجدي بكر', code: '20397', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-9603', name: 'أبو بكر رجب محمد توفيق', code: '9603', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-22793', name: 'محمد مصطفى', code: '22793', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-19049', name: 'محمد احمد علي شاهين', code: '19049', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-10799', name: 'إبراهيم وجيه إبراهيم محمد', code: '10799', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-21395', name: 'أيمن عبده عبدالمجيد', code: '21395', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-18272', name: 'عمرو محمد فوزي علي محمد الهنداوي', code: '18272', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-21855', name: 'سعيد احمد سعيد علي', code: '21855', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-14950', name: 'ضياء محمد قاسم عبدالله', code: '14950', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-12700', name: 'طه فتحي فرغلي محمد', code: '12700', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-10861', name: 'عادل فتحي عبدالرسول محمد', code: '10861', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-14949', name: 'هشام عبدالحكيم عبدالحميد دياب', code: '14949', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-16541', name: 'مختار عبدالرحمن عبدالعليم عبيد', code: '16541', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-20614', name: 'محمد سيد', code: '20614', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-8587', name: 'صبري سعيد محمد', code: '8587', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-22179', name: 'محمد مجاهد', code: '22179', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-19054', name: 'حسن علي', code: '19054', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-14054', name: 'احمد عبدالمجيد محمد عبدالمجيد', code: '14054', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-18997', name: 'احمد سعيد', code: '18997', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-22811', name: 'علي سعيد محمد', code: '22811', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-12306', name: 'محمد فوزي عبدالنبي محمد', code: '12306', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-21325', name: 'محمد جمعه شعبان', code: '21325', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-21268', name: 'احمد محمود متولي', code: '21268', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-17634', name: 'عمرو كامل عبدالصمد محمد', code: '17634', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-20615', name: 'احمد عارف', code: '20615', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-18275', name: 'أحمد سعد عبدالباقي إمام وهبه', code: '18275', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-17728', name: 'كريم محمد علي عبدالحميد', code: '17728', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-19381', name: 'مصطفي سعيد عبدالعزيز', code: '19381', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-18277', name: 'هيثم مندي سعد محمود النمس', code: '18277', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-8330', name: 'إبراهيم حسن عبدالرؤوف علي', code: '8330', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-21036', name: 'احمد سعدالدين', code: '21036', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-19566', name: 'احمد ناجي', code: '19566', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-18480', name: 'صبري حسين', code: '18480', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-12333', name: 'محمود محمد عبدالعليم سيد', code: '12333', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-22796', name: 'محمود علي', code: '22796', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-13969', name: 'أحمد بدر عبدالرحيم السيد', code: '13969', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-13435', name: 'أسعد سمير مصطفى بقوش', code: '13435', shiftId: null, deptKey: null, jobTitle: 'worker', active: true },
+  { id: 'W-17711', name: 'السيد ياسر محمد حلمي', code: '17711', shiftId: null, deptKey: null, jobTitle: 'worker', active: true }
 ];
 
 function getDefaultState() {
@@ -824,6 +864,11 @@ function openAddWorkerModal() {
       <label style="font-size:12px; margin-top:8px; display:block;">كود العامل</label>
       <input class="input" id="wCode" required placeholder="W-000">
 
+      <label style="font-size:12px; margin-top:8px; display:block;">المسمى الوظيفي</label>
+      <select class="input" id="wJobTitle" required>
+        ${JOB_TITLES.map(j => `<option value="${j.key}">${j.ar}</option>`).join('')}
+      </select>
+
       <div class="muted" style="margin-top:10px;">💡 سيظهر العامل ضمن "العمال غير الموزعين" في شاشة 🧩 توزيع الأقسام، حسب الشفت الذي تختاره له من هناك.</div>
 
       <button class="btn btn-primary" style="margin-top:16px;">حفظ العامل</button>
@@ -835,11 +880,12 @@ function handleAddWorker(e) {
   e.preventDefault();
   const name = document.getElementById('wName').value.trim();
   const code = document.getElementById('wCode').value.trim();
+  const jobTitle = document.getElementById('wJobTitle').value;
 
   if (!name || !code) { toast('اكتب اسم العامل والكود الوظيفي'); return; }
   if (state.workers.some(w => w.code === code)) { toast('🔴 هذا الكود الوظيفي مستخدم بالفعل'); return; }
 
-  state.workers.push({ id: 'W-' + Date.now().toString().slice(-6), name, code, shiftId: null, deptKey: null, active: true, present: true });
+  state.workers.push({ id: 'W-' + Date.now().toString().slice(-6), name, code, shiftId: null, deptKey: null, jobTitle, active: true, present: true });
   queueSave();
   closeModal();
   toast('تمت إضافة العامل بنجاح، وزّعه على شفت من شاشة 🧩 توزيع الأقسام');
@@ -935,6 +981,11 @@ function openEditWorkerModal(id) {
       <label style="font-size:12px; margin-top:8px; display:block;">كود العامل</label>
       <input class="input" id="wCode" value="${escapeHtml(w.code)}" required>
 
+      <label style="font-size:12px; margin-top:8px; display:block;">المسمى الوظيفي</label>
+      <select class="input" id="wJobTitle">
+        ${JOB_TITLES.map(j => `<option value="${j.key}" ${w.jobTitle===j.key?'selected':''}>${j.ar}</option>`).join('')}
+      </select>
+
       <div class="muted" style="margin-top:10px;">💡 لتغيير الشفت استخدم شاشة 🔄 تغيير الشفتات، ولتغيير القسم استخدم شاشة 🧩 توزيع الأقسام.</div>
 
       <button class="btn btn-primary" style="margin-top:16px;">حفظ التغييرات</button>
@@ -950,6 +1001,8 @@ function handleEditWorker(e, id) {
     if (state.workers.some(x => x.id !== id && x.code === newCode)) { toast('🔴 هذا الكود الوظيفي مستخدم بالفعل'); return; }
     w.name = document.getElementById('wName').value.trim();
     w.code = newCode;
+    const jtEl = document.getElementById('wJobTitle');
+    if (jtEl) w.jobTitle = jtEl.value;
     queueSave();
     closeModal();
     toast('تم تحديث البيانات');
@@ -1088,7 +1141,7 @@ function renderWizardScreen() {
       <div class="card" style="margin-bottom:8px; padding:12px;">
         <div style="font-size:12px; color:var(--text-muted);">خطوة ${wiz.step} من 3</div>
         <div style="font-weight:800; font-size:15px;">
-          ${wiz.step===1?'1. اختيار الشفت وكشف الحضور والغياب':wiz.step===2?'2. توزيع العمال على الأقسام':'3. التقرير التشغيلي والملاحظات الإضافية'}
+          ${wiz.step===1?'1. اختيار الشفت وكشف الحضور والغياب':wiz.step===2?'2. توزيع العمال على الأقسام':'3. المراجعة والإرسال'}
         </div>
       </div>
 
@@ -1228,50 +1281,29 @@ function toggleDeptAssignment(deptKey, workerId) {
 
 function renderWizardStep3() {
   const wiz = state.activeWizard;
+  const shift = state.shifts.find(s => s.id === wiz.shiftId);
+  const presentCount = Object.values(wiz.attendance).filter(v => v === 'present').length;
+  const totalCount = Object.keys(wiz.attendance).length;
+  const distributedCount = DEPARTMENTS.reduce((sum, d) => sum + (wiz.depts[d.key]?.length || 0), 0);
   return `
     <div class="card">
-      <div style="font-weight:800; margin-bottom:8px;">🚚 التشغيل - حركة السيارات والملاحظات</div>
-      <label style="font-size:12px;">عدد سيارات الشحن</label>
-      <input class="input" type="number" id="wizTrucks" value="${wiz.ops.truckCount}" oninput="state.activeWizard.ops.truckCount=this.value" onchange="state.activeWizard.ops.truckCount=this.value">
-
-      <label style="font-size:12px; margin-top:8px; display:block;">حالة التشغيل العامة</label>
-      <select class="input" onchange="state.activeWizard.ops.status=this.value">
-        <option ${wiz.ops.status==='ممتاز'?'selected':''}>ممتاز</option>
-        <option ${wiz.ops.status==='جيد'?'selected':''}>جيد</option>
-        <option ${wiz.ops.status==='مزدحم'?'selected':''}>مزدحم / فيه تأخير</option>
-      </select>
-
-      <label style="font-size:12px; margin-top:8px; display:block;">ملاحظات المشرف العامة</label>
-      <textarea class="input" id="wizNotes" rows="2" placeholder="ملاحظات عامة حول الشفت..." oninput="state.activeWizard.ops.notes=this.value" onchange="state.activeWizard.ops.notes=this.value">${wiz.ops.notes || ''}</textarea>
-
-      <label style="font-size:12px; margin-top:12px; display:block; color:var(--danger); font-weight:bold;">⚠️ مشاكل وملاحظات إضافية (الترانس بلت / أعطال / التشغيل)</label>
-      <textarea class="input" id="wizIssues" rows="3" placeholder="اكتب هنا أي أعطال أو مشاكل ظهرت في الترانس بلت أو سير العمل أو التشغيل..." style="border-color: var(--danger-soft);" oninput="state.activeWizard.ops.issues=this.value" onchange="state.activeWizard.ops.issues=this.value">${wiz.ops.issues || ''}</textarea>
+      <div style="font-weight:800; margin-bottom:8px;">✅ مراجعة أخيرة قبل الإرسال</div>
+      <div style="font-size:13px; display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div>الشفت: <b>${shift ? shift.name : ''}</b></div>
+        <div>الحضور: <b>${presentCount}</b> من ${totalCount}</div>
+        <div>عمال موزعين على الأقسام: <b>${distributedCount}</b></div>
+      </div>
+      <div class="muted" style="margin-top:10px;">راجع البيانات فوق، ولو كل حاجة تمام دوس "إرسال التقرير النهائي" تحت.</div>
     </div>
   `;
 }
 
 function wizStep(delta) {
-  const notesEl = document.getElementById('wizNotes');
-  const issuesEl = document.getElementById('wizIssues');
-  const trucksEl = document.getElementById('wizTrucks');
-  
-  if (notesEl) state.activeWizard.ops.notes = notesEl.value;
-  if (issuesEl) state.activeWizard.ops.issues = issuesEl.value;
-  if (trucksEl) state.activeWizard.ops.truckCount = trucksEl.value;
-
   state.activeWizard.step += delta;
   renderApp();
 }
 
 function submitFinalReport() {
-  const notesEl = document.getElementById('wizNotes');
-  const issuesEl = document.getElementById('wizIssues');
-  const trucksEl = document.getElementById('wizTrucks');
-  
-  if (notesEl) state.activeWizard.ops.notes = notesEl.value.trim();
-  if (issuesEl) state.activeWizard.ops.issues = issuesEl.value.trim();
-  if (trucksEl) state.activeWizard.ops.truckCount = trucksEl.value;
-
   const wiz = state.activeWizard;
   const shift = state.shifts.find(s => s.id === wiz.shiftId);
   const user = getLoggedInUser();
@@ -1319,14 +1351,6 @@ function renderReportsScreen() {
           <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
             محرر التقرير: <b>${r.supervisor}</b> | إجمالي العمال: ${r.workersCount}
           </div>
-          <div style="font-size:12px; margin-top:4px;">
-            الملاحظات العامة: <b>${r.ops.notes || 'لا يوجد'}</b>
-          </div>
-          ${r.ops.issues ? `
-            <div style="font-size:12px; margin-top:4px; color:var(--danger);">
-              ⚠️ مشاكل التشغيل والترانس بلت: <b>${r.ops.issues}</b>
-            </div>
-          ` : ''}
           <div style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;">
             <button class="btn btn-secondary btn-sm" onclick="resendTelegram('${r.id}')">📲 إعادة إرسال Telegram</button>
             ${isAdmin() ? `<button class="btn btn-danger btn-sm" onclick="deleteReport('${r.id}')">🗑️ حذف</button>` : ''}
@@ -1355,9 +1379,6 @@ function escTgMd(s){
   return String(s==null?'':s).replace(/([_*`\[\]])/g, '\\$1');
 }
 async function sendTelegramReport(rep) {
-  const notesText = (rep.ops && rep.ops.notes && rep.ops.notes.trim() !== '') ? escTgMd(rep.ops.notes.trim()) : 'لا يوجد';
-  const issuesText = (rep.ops && rep.ops.issues && rep.ops.issues.trim() !== '') ? escTgMd(rep.ops.issues.trim()) : 'لا يوجد مشاكل أو أعطال';
-
   // تجميع تفاصيل الحضور والغياب مع توضيح الحالة بالضبط
   let attendanceSummary = [];
   Object.keys(rep.attendance).forEach(wId => {
@@ -1399,12 +1420,7 @@ ${attendanceStr}
 
 -----------------------------------
 🏗️ *توزيع العمال على الأقسام:*
-${deptStr}
-
------------------------------------
-🚚 *سيارات الشحن:* ${rep.ops.truckCount || 0}
-📝 *الملاحظات العامة:* ${notesText}
-⚠️ *مشاكل الترانس بلت والتشغيل:* ${issuesText}`;
+${deptStr}`;
 
   try {
     const bot = getActiveTelegramBot();
@@ -2623,20 +2639,24 @@ ensureV2State=function(){
   state.auditLog=Array.isArray(state.auditLog)?state.auditLog:[];
   state.evalSettings=(state.evalSettings&&state.evalSettings.deductions)?state.evalSettings:defaultEvalSettings();
   state.evalNotes=(state.evalNotes&&typeof state.evalNotes==='object')?state.evalNotes:{};
+  state.workerNotes=(state.workerNotes&&typeof state.workerNotes==='object')?state.workerNotes:{};
+  state.loadUnloadLog=Array.isArray(state.loadUnloadLog)?state.loadUnloadLog:[];
 };
 ensureV2State();
 if(!CORE_FIELDS.includes('evalSettings'))CORE_FIELDS.push('evalSettings');
 if(!CORE_FIELDS.includes('evalNotes'))CORE_FIELDS.push('evalNotes');
+if(!CORE_FIELDS.includes('workerNotes'))CORE_FIELDS.push('workerNotes');
 if(!GROWING_COLLECTIONS.includes('workerStatuses')){GROWING_COLLECTIONS.push('workerStatuses');_syncCache.workerStatuses={};}
 if(!GROWING_COLLECTIONS.includes('auditLog')){GROWING_COLLECTIONS.push('auditLog');_syncCache.auditLog={};}
+if(!GROWING_COLLECTIONS.includes('loadUnloadLog')){GROWING_COLLECTIONS.push('loadUnloadLog');_syncCache.loadUnloadLog={};}
 const _oldGetDefaultState_perm=getDefaultState;
-getDefaultState=function(){const s=_oldGetDefaultState_perm();s.workerStatuses=[];s.auditLog=[];s.evalSettings=defaultEvalSettings();s.evalNotes={};return s;};
+getDefaultState=function(){const s=_oldGetDefaultState_perm();s.workerStatuses=[];s.auditLog=[];s.evalSettings=defaultEvalSettings();s.evalNotes={};s.workerNotes={};s.loadUnloadLog=[];return s;};
 
 function auditAdd(action,details){
   const rec=Object.assign({id:'AUD-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),action,by:currentUser().name||'',at:new Date().toISOString()},details||{});
   state.auditLog.unshift(rec);
 }
-function auditActionLabel(a){return {status_create:'➕ إضافة حالة',status_update:'✏️ تعديل حالة',status_decision:'✅ قرار اعتماد / رفض حالة',sick_toggle:'🤒 تغيير احتساب المرض في التقييم',status_delete:'🗑️ حذف حالة',eval_note_update:'📝 تحديث ملاحظة تقييم عامل',eval_settings_update:'⚙️ تعديل إعدادات نقاط التقييم',worker_delete:'🗑️ حذف عامل'}[a]||a;}
+function auditActionLabel(a){return {status_create:'➕ إضافة حالة',status_update:'✏️ تعديل حالة',status_decision:'✅ قرار اعتماد / رفض حالة',sick_toggle:'🤒 تغيير احتساب المرض في التقييم',status_delete:'🗑️ حذف حالة',eval_note_update:'📝 إضافة ملاحظة عامل',eval_note_delete:'🗑️ حذف ملاحظة عامل',eval_settings_update:'⚙️ تعديل إعدادات نقاط التقييم',worker_delete:'🗑️ حذف عامل',load_unload_create:'🚛 تسجيل حركة تحميل/تفريغ',load_unload_delete:'🗑️ حذف حركة تحميل/تفريغ'}[a]||a;}
 
 /* -------- الصلاحيات -------- */
 function visibleWorkersForStatus(){const u=currentUser();return isAdmin()?state.workers.filter(w=>w.active):state.workers.filter(w=>w.active&&w.shiftId===u.shiftId);}
@@ -2881,7 +2901,6 @@ function renderEvalDetail(workerId){
   const w=workerById(workerId);
   if(!w)return `<div class="px" style="padding-top:12px"><div class="card">العامل غير موجود.</div><button class="btn btn-secondary" onclick="backToEvalList()">⬅️ رجوع</button></div>`;
   const ev=computeWorkerEval(workerId,_evalMonth);const r=ratingForScore(ev.score);const c=ev.counts;
-  const noteVal=state.evalNotes[workerId]||'';
   const canNote=isAdmin()||currentUser().shiftId===w.shiftId;
   return `<div class="px" style="padding-top:12px">
     <button class="btn btn-secondary btn-sm" onclick="backToEvalList()">⬅️ رجوع للقائمة</button>
@@ -2932,18 +2951,47 @@ function renderEvalDetail(workerId){
       </div>
     </div>
     <div class="card">
-      <b>📝 ملاحظات المشرف</b>
-      <textarea class="input" id="evalNoteInput" rows="3" ${canNote?'':'disabled'}>${escapeHtml(noteVal)}</textarea>
-      ${canNote?`<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="saveEvalNote('${w.id}')">💾 حفظ الملاحظة</button>`:''}
+      <b>📝 ملاحظات العمال</b>
+      <div style="margin-top:8px;">
+        ${(() => {
+          const notes = (state.workerNotes[w.id] || []).slice().sort((a,b) => String(b.at).localeCompare(String(a.at)));
+          if (!notes.length) return '<div class="muted">لا توجد ملاحظات مسجلة لهذا العامل بعد.</div>';
+          return notes.map(n => `<div class="card" style="margin-top:8px;">
+            <div style="white-space:pre-wrap;">${escapeHtml(n.text)}</div>
+            <div class="muted" style="margin-top:6px; font-size:11px; display:flex; justify-content:space-between;">
+              <span>${escapeHtml(n.by || '')}</span><span>${escapeHtml(n.at || '')}</span>
+            </div>
+            ${isAdmin() ? `<button class="btn btn-danger btn-sm" style="margin-top:6px;" onclick="deleteWorkerNote('${w.id}','${n.id}')">🗑️ حذف</button>` : ''}
+          </div>`).join('');
+        })()}
+      </div>
+      ${canNote ? `
+        <textarea class="input" id="evalNoteInput" rows="3" placeholder="اكتب ملاحظة جديدة عن العامل..." style="margin-top:10px;"></textarea>
+        <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="saveEvalNote('${w.id}')">💾 إضافة الملاحظة</button>
+      ` : ''}
     </div>
     <button class="btn btn-secondary btn-sm" onclick="openAddStatusModal('${w.id}')">➕ إضافة حالة لهذا العامل</button>
   </div>`;
 }
 function saveEvalNote(workerId){
-  const v=document.getElementById('evalNoteInput').value.trim();
-  state.evalNotes[workerId]=v;
+  const el=document.getElementById('evalNoteInput');
+  const v=el?el.value.trim():'';
+  if(!v){toast('اكتب نص الملاحظة أولًا');return;}
+  if(!state.workerNotes[workerId]) state.workerNotes[workerId]=[];
+  state.workerNotes[workerId].push({id:'NOTE-'+Date.now()+'-'+Math.random().toString(36).slice(2,6), text:v, by:currentUser().name, at:new Date().toLocaleString('ar-EG')});
   auditAdd('eval_note_update',{workerId});
-  queueSave();toast('تم حفظ الملاحظة');
+  queueSave();
+  toast('تم حفظ الملاحظة');
+  renderApp();
+}
+function deleteWorkerNote(workerId, noteId){
+  if(!isAdmin()){toast('حذف الملاحظات متاح للمشرف الرئيسي فقط');return;}
+  if(!confirm('حذف هذه الملاحظة؟ لا يمكن التراجع.'))return;
+  state.workerNotes[workerId]=(state.workerNotes[workerId]||[]).filter(n=>n.id!==noteId);
+  auditAdd('eval_note_delete',{workerId,noteId});
+  queueSave();
+  toast('تم حذف الملاحظة');
+  renderApp();
 }
 function openEvalSettingsModal(){
   if(!isAdmin())return;
@@ -3021,17 +3069,107 @@ function renderWorkerCard(w){
   const shift=shiftById(w.shiftId), dept=DEPARTMENTS.find(d=>d.key===w.deptKey);
   return `<div class="card worker-card-item" data-name="${escapeHtml(w.name)}" data-code="${escapeHtml(w.code)}">
     <div class="row"><div><b style="font-size:15px;display:block">${escapeHtml(w.name)}</b><span class="muted">${escapeHtml(w.code)}</span></div><span class="badge ${w.active?'success':'danger'}">${w.active?'🟢 نشط':'🔴 غير نشط'}</span></div>
+    <div class="muted" style="margin-top:4px;font-size:12px;">${escapeHtml(jobTitleLabel(w.jobTitle))}</div>
     <div style="margin-top:10px;font-size:12.5px;display:grid;grid-template-columns:1fr 1fr;gap:6px"><div>الشفت: <b>${shift?escapeHtml(shift.name):'غير محدد'}</b></div><div>القسم: <b>${dept?escapeHtml(dept.ar):'غير محدد'}</b></div></div>
     <div style="margin-top:12px;display:flex;gap:6px"><button class="btn btn-secondary btn-sm" style="flex:1" onclick="openEditWorkerModal('${w.id}')">✏️ تعديل</button><button class="btn ${w.active?'btn-danger':'btn-primary'} btn-sm" onclick="toggleWorkerActive('${w.id}')">${w.active?'تعطيل':'تفعيل'}</button></div>
     <div style="margin-top:8px;display:flex;gap:6px"><button class="btn btn-secondary btn-sm" style="flex:1" onclick="openAddStatusModal('${w.id}')">📋 حالة</button><button class="btn btn-secondary btn-sm" style="flex:1" onclick="openWorkerEvalDetailScreen('${w.id}')">📊 تقييم</button><button class="btn btn-danger btn-sm" onclick="deleteWorker('${w.id}')">🗑️ حذف</button></div>
   </div>`;
 }
 
+/* ================= الشحن وتفريغ (سجل التحميل والتفريغ) ================= */
+const LOAD_UNLOAD_TYPES = [
+  { key: 'load_trailer', label: '⬆️ تحميل جرار' },
+  { key: 'load_truck', label: '⬆️ تحميل سيارة' },
+  { key: 'load_container', label: '📦 تحميل حاوية' },
+  { key: 'unload_trailer', label: '⬇️ تفريغ جرار' },
+  { key: 'unload_truck', label: '⬇️ تفريغ سيارة' },
+  { key: 'unload_container', label: '⬇️ تفريغ حاوية' }
+];
+function loadUnloadTypeLabel(key){ const t=LOAD_UNLOAD_TYPES.find(x=>x.key===key); return t?t.label:key; }
+function onLoadUnloadTypeChange(v){
+  const wrap = document.getElementById('luContainerFields');
+  if (wrap) wrap.style.display = (v === 'load_container') ? 'block' : 'none';
+}
+function renderLoadUnloadForm(){
+  return `
+    <div class="card">
+      <div style="font-weight:800; margin-bottom:8px;">🚛 الشحن وتفريغ</div>
+      <label style="font-size:12px;">نوع الحركة</label>
+      <select class="input" id="luType" onchange="onLoadUnloadTypeChange(this.value)">
+        ${LOAD_UNLOAD_TYPES.map(t=>`<option value="${t.key}">${t.label}</option>`).join('')}
+      </select>
+
+      <div id="luContainerFields" style="display:none;">
+        <label style="font-size:12px; margin-top:8px; display:block;">بيانات الحاوية</label>
+        <input class="input" id="luContainerName" placeholder="مثال: جرار سكر">
+        <input class="input" type="number" step="0.1" id="luTons" placeholder="عدد الأطنان" style="margin-top:6px;">
+      </div>
+
+      <label style="font-size:12px; margin-top:8px; display:block;">ملاحظات (اختياري)</label>
+      <textarea class="input" id="luNotes" rows="2" placeholder="أي تفاصيل إضافية..."></textarea>
+
+      <button class="btn btn-primary" style="width:100%; margin-top:12px;" onclick="saveLoadUnload()">💾 تسجيل الحركة</button>
+    </div>
+  `;
+}
+function renderLoadUnloadScreen(){
+  const log = (state.loadUnloadLog||[]).slice().sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+  return `<div class="px" style="padding-top:12px;">
+    <h3 style="margin:0 0 12px;">🚛 الشحن وتفريغ</h3>
+
+    ${renderLoadUnloadForm()}
+
+    <h3 style="margin:16px 0 8px;">📋 سجل التحميل والتفريغ (${log.length})</h3>
+    ${!log.length ? '<div class="card">لا توجد حركات مسجلة بعد.</div>' : ''}
+    ${log.map(l => `
+      <div class="card">
+        <div class="row"><b>${loadUnloadTypeLabel(l.type)}</b><span class="muted" style="font-size:11px;">${escapeHtml(l.at||'')}</span></div>
+        ${l.containerName ? `<div style="margin-top:6px; font-size:13px;">الحاوية: <b>${escapeHtml(l.containerName)}</b>${l.tons?` — ${escapeHtml(String(l.tons))} طن`:''}</div>` : ''}
+        ${l.notes ? `<div class="muted" style="margin-top:4px; font-size:12.5px;">${escapeHtml(l.notes)}</div>` : ''}
+        <div class="muted" style="margin-top:6px; font-size:11px;">بواسطة: ${escapeHtml(l.by||'')}</div>
+        ${isAdmin() ? `<button class="btn btn-danger btn-sm" style="margin-top:8px;" onclick="deleteLoadUnload('${l.id}')">🗑️ حذف</button>` : ''}
+      </div>
+    `).join('')}
+  </div>`;
+}
+function saveLoadUnload(){
+  const type = document.getElementById('luType')?.value;
+  const notes = document.getElementById('luNotes')?.value.trim() || '';
+  const containerName = document.getElementById('luContainerName')?.value.trim() || '';
+  const tons = document.getElementById('luTons')?.value || '';
+
+  if (type === 'load_container' && !containerName) { toast('اكتب بيانات الحاوية أولًا'); return; }
+
+  const rec = {
+    id: 'LU-' + Date.now() + '-' + Math.random().toString(36).slice(2,6),
+    type, notes,
+    containerName: type==='load_container' ? containerName : '',
+    tons: type==='load_container' ? tons : '',
+    by: currentUser().name,
+    at: new Date().toLocaleString('ar-EG'),
+    createdAt: new Date().toISOString()
+  };
+  state.loadUnloadLog.unshift(rec);
+  auditAdd('load_unload_create', {refId:rec.id, type:rec.type, containerName:rec.containerName});
+  queueSave();
+  toast('تم تسجيل الحركة بنجاح');
+  renderApp();
+}
+function deleteLoadUnload(id){
+  if(!isAdmin()){ toast('حذف حركات التحميل والتفريغ متاح للمشرف الرئيسي فقط'); return; }
+  if(!confirm('حذف هذه الحركة نهائيًا؟ لا يمكن التراجع.')) return;
+  state.loadUnloadLog = (state.loadUnloadLog||[]).filter(x=>x.id!==id);
+  auditAdd('load_unload_delete', {id});
+  queueSave();
+  toast('تم حذف الحركة');
+  renderApp();
+}
+
 /* -------- ربط الشاشات الجديدة بالتنقل والداشبورد (بدون حذف أي شيء موجود) -------- */
 const _oldRenderToolsCards_perm=renderToolsCards;
 renderToolsCards=function(){
   const base=_oldRenderToolsCards_perm();
-  const extra=`<button class="btn btn-secondary" onclick="setScreen('workerStatus')">📋 الإذونات والحالات</button><button class="btn btn-secondary" onclick="setScreen('workerEval')">📊 تقييم وانضباط العمال</button><button class="btn btn-secondary" onclick="setScreen('workerRanking')">🏆 ترتيب العمال</button>`;
+  const extra=`<button class="btn btn-secondary" onclick="setScreen('workerStatus')">📋 الإذونات والحالات</button><button class="btn btn-secondary" onclick="setScreen('workerEval')">📊 تقييم وانضباط العمال</button><button class="btn btn-secondary" onclick="setScreen('workerRanking')">🏆 ترتيب العمال</button><button class="btn btn-secondary" onclick="setScreen('loadUnload')">🚛 الشحن وتفريغ</button>`;
   return base.replace('</div></div>', extra+'</div></div>');
 };
 
@@ -3039,7 +3177,7 @@ const _oldRenderApp_perm=renderApp;
 renderApp=function(){
   ensureV2State();
   const u=currentUser();
-  const newScreens=['workerStatus','workerEval','workerRanking','auditLog'];
+  const newScreens=['workerStatus','workerEval','workerRanking','auditLog','loadUnload'];
   if(u && u.id!==undefined && newScreens.includes(state.activeScreen)){
     document.documentElement.setAttribute('data-theme', state.theme);
     document.getElementById('themeBtn').textContent = state.theme==='dark'?'☀️':'🌙';
@@ -3052,6 +3190,7 @@ renderApp=function(){
     else if(state.activeScreen==='workerEval')app.innerHTML=renderEvalScreen();
     else if(state.activeScreen==='workerRanking')app.innerHTML=renderRankingScreen();
     else if(state.activeScreen==='auditLog')app.innerHTML=renderAuditLogScreen();
+    else if(state.activeScreen==='loadUnload')app.innerHTML=renderLoadUnloadScreen();
     attachEvents();
     return;
   }
