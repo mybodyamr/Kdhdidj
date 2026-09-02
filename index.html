@@ -1878,11 +1878,11 @@ async function renderLeaveCalendarReport(records){
 /* Generic clean tabular report used by shift-changes, seasonal, and warehouse reports (headers in RTL order, right = first). */
 async function canvasReport(title, headers, rows, filename){
   await ensureReportFontsReady();
-  const W=1240, bannerH=140, colHeadH=54, lineH=24, cellPadY=16, minRowH=56;
+  const W=1240, bannerH=140, colHeadH=58, lineH=27, cellPadY=16, minRowH=60;
   const cols=headers.length;
   const colW=W/cols;
   const measure=document.createElement('canvas').getContext('2d');
-  measure.font='15px Tajawal, Arial';
+  measure.font='16px Tajawal, Arial';
   const rowLines=rows.map(r=>headers.map((_,ci)=>wrapCanvasText(measure, r[ci], colW-28)));
   const rowHeights=rowLines.map(lines=>Math.max(minRowH, Math.max(...lines.map(l=>l.length))*lineH+cellPadY*2));
   const gridTop=bannerH+colHeadH;
@@ -1902,13 +1902,13 @@ async function canvasReport(title, headers, rows, filename){
   ctx.fillText('SAUDI MARKET • WAREHOUSE OPERATIONS', W/2, 32);
   ctx.fillStyle='#FFFFFF'; ctx.font='bold 30px Cairo, Arial';
   ctx.fillText(title, W/2, 74);
-  ctx.fillStyle='#C7D3DB'; ctx.font='15px Tajawal, Arial';
+  ctx.fillStyle='#C7D3DB'; ctx.font='16px Tajawal, Arial';
   ctx.fillText(`${new Date().toLocaleDateString('ar-EG')}  •  إجمالي السجلات: ${rows.length}`, W/2, 104);
 
   ctx.fillStyle='#EEF3F6'; ctx.fillRect(0,bannerH,W,colHeadH);
   ctx.strokeStyle='#7C8B96'; ctx.lineWidth=2; ctx.strokeRect(0,bannerH,W,colHeadH);
-  ctx.fillStyle='#16222D'; ctx.font='bold 16px Cairo, Arial';
-  headers.forEach((h,i)=>{ const cx=W-i*colW-colW/2; ctx.fillText(h, cx, bannerH+34); });
+  ctx.fillStyle='#16222D'; ctx.font='bold 18px Cairo, Arial';
+  headers.forEach((h,i)=>{ const cx=W-i*colW-colW/2; ctx.fillText(h, cx, bannerH+37); });
 
   let y=gridTop;
   rowLines.forEach((lines,ri)=>{
@@ -1917,7 +1917,7 @@ async function canvasReport(title, headers, rows, filename){
     ctx.fillRect(0,y,W,rh);
     lines.forEach((cellLines,ci)=>{
       const cx=W-ci*colW-colW/2;
-      ctx.fillStyle='#16222D'; ctx.font='14px Tajawal, Arial';
+      ctx.fillStyle='#16222D'; ctx.font='600 16px Tajawal, Arial';
       const blockH=cellLines.length*lineH;
       let ty=y+rh/2-blockH/2+lineH*0.72;
       cellLines.forEach(line=>{ ctx.fillText(line, cx, ty); ty+=lineH; });
@@ -1934,7 +1934,7 @@ async function canvasReport(title, headers, rows, filename){
   ctx.strokeStyle='#7C8B96'; ctx.lineWidth=2.2;
   ctx.strokeRect(0,bannerH,W,colHeadH+rowHeights.reduce((a,b)=>a+b,0));
 
-  ctx.fillStyle='#93A3AF'; ctx.font='11.5px Tajawal, Arial';
+  ctx.fillStyle='#93A3AF'; ctx.font='12px Tajawal, Arial';
   ctx.fillText('تم إنشاء هذا التقرير تلقائيًا من تطبيق Saudi Market Warehouse Operations', W/2, totalH-16);
 
   const data=c.toDataURL('image/png');
@@ -3463,10 +3463,14 @@ function renderPalletsLog() {
   const rows = state.pallets.slice().sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
   const totalLarge = rows.reduce((s, p) => s + (Number(p.largeCount) || 0), 0);
   const totalSmall = rows.reduce((s, p) => s + (Number(p.smallCount) || 0), 0);
+  const hasCompany = rows.some(p => p.movementType === 'company');
+  const hasExternal = rows.some(p => p.movementType === 'external');
   return `<div class="row" style="margin-bottom:8px;">
       <h4 style="margin:0;">📋 سجل البلتات</h4>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        ${rows.length ? `<button class="btn btn-secondary btn-sm" onclick="printPalletsReport()">🖨️ تقرير</button><button class="btn btn-secondary btn-sm" onclick="exportPalletsExcel()">📥 Excel</button>` : ''}
+        ${hasCompany ? `<button class="btn btn-secondary btn-sm" onclick="printPalletsCompanyReport()">🖨️ 🏢 تقرير شركات</button>` : ''}
+        ${hasExternal ? `<button class="btn btn-secondary btn-sm" onclick="printPalletsExternalReport()">🖨️ 🏭 تقرير مخازن خارجية</button>` : ''}
+        ${rows.length ? `<button class="btn btn-secondary btn-sm" onclick="exportPalletsExcel()">📥 Excel (الكل)</button>` : ''}
       </div>
     </div>
     <div class="card">
@@ -3843,15 +3847,34 @@ printSeasonalReport = function () {
   canvasReportToSection('📋 تقرير توزيع العمال الموسمي', ['العامل', 'الكود', 'التوزيع', 'الشفت'], rows, 'تقرير-الموسمي', 'seasonal');
 };
 
-/* تقرير البلتات: يتبعت لبوتات قسم "إدارة البلتات" فقط (بدل البوت النشط العام) */
-printPalletsReport = function () {
-  const rows = state.pallets.slice()
+/* تقارير البلتات: مقسّمة لنوعين مستقلين تمامًا — كل نوع له قسم بوت مستقل بذاته */
+function palletsReportRows(type) {
+  return state.pallets.slice()
+    .filter(p => p.movementType === type)
     .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
     .slice(0, 150)
-    .map(p => ['#' + p.opNumber, plainLabel(palletMovementInfo(p.movementType).label), p.partyName || '—', p.location || '—', String(p.largeCount || 0), String(p.smallCount || 0), String(p.total || 0), p.createdBy || '—', new Date(p.createdAt).toLocaleDateString('ar-EG')]);
-  if (!rows.length) { toast('لا توجد عمليات بلتات للتقرير'); return; }
-  canvasReportToSection('🪵 تقرير عمليات البلتات', ['رقم العملية', 'النوع', 'الاسم', 'المكان', 'كبيرة', 'صغيرة', 'الإجمالي', 'أنشأها', 'التاريخ'], rows, 'تقرير-البلتات', 'pallets');
-};
+    .map(p => ['#' + p.opNumber, p.partyName || '—', p.location || '—', String(p.largeCount || 0), String(p.smallCount || 0), String(p.total || 0), p.createdBy || '—', new Date(p.createdAt).toLocaleDateString('ar-EG')]);
+}
+function printPalletsCompanyReport() {
+  const rows = palletsReportRows('company');
+  if (!rows.length) { toast('لا توجد عمليات بلتات شركات للتقرير'); return; }
+  canvasReportToSection('🏢 تقرير بلتات الشركات', ['رقم العملية', 'الاسم', 'المكان', 'كبيرة', 'صغيرة', 'الإجمالي', 'أنشأها', 'التاريخ'], rows, 'تقرير-بلتات-الشركات', 'pallets_company');
+}
+function printPalletsExternalReport() {
+  const rows = palletsReportRows('external');
+  if (!rows.length) { toast('لا توجد عمليات بلتات مخازن خارجية للتقرير'); return; }
+  canvasReportToSection('🏭 تقرير بلتات المخازن الخارجية', ['رقم العملية', 'الاسم', 'المكان', 'كبيرة', 'صغيرة', 'الإجمالي', 'أنشأها', 'التاريخ'], rows, 'تقرير-بلتات-مخازن-خارجية', 'pallets_external');
+}
+/* إبقاء الاسم القديم شغال (لو استُخدم في أي مكان) بحيث يطبع تقريرين منفصلين، كل واحد لقسمه */
+printPalletsReport = function () { printPalletsCompanyReport(); printPalletsExternalReport(); };
+
+/* استبدال قسم "إدارة البلتات" الموحّد بقسمين منفصلين تمامًا في نظام ربط البوتات */
+(function splitPalletsSection() {
+  const idx = TELEGRAM_SECTIONS.findIndex(s => s.key === 'pallets');
+  const newEntries = [{ key: 'pallets_company', label: '🏢 بلتات شركات' }, { key: 'pallets_external', label: '🏭 بلتات مخازن خارجية' }];
+  if (idx >= 0) TELEGRAM_SECTIONS.splice(idx, 1, ...newEntries);
+  else TELEGRAM_SECTIONS.push(...newEntries);
+})();
 
 /* شيت إضافي لسجل الموسمي في ملف التصدير الشامل */
 const _oldBuildExportWorkbook_seasonalLog = buildExportWorkbook;
@@ -3866,6 +3889,45 @@ buildExportWorkbook = function () {
   XLSX.utils.book_append_sheet(wb, ws, 'SeasonalLog');
   return wb;
 };
+
+/* ================================================================================
+   🤖 توسعة إضافية: باقي التقارير الموجودة في المشروع تنضم لنظام "ربط القسم ببوت" كمان
+   (بدون تعديل أي دالة تقرير أصلية — بس تغليفها عشان تستخدم canvasReportToSection)
+   ================================================================================ */
+TELEGRAM_SECTIONS.push(
+  { key: 'leaves', label: '📅 الإجازات' },
+  { key: 'shiftChanges', label: '🔄 تغييرات الشفتات' },
+  { key: 'warehouse', label: '🏪 ملاحظات المخزن' },
+  { key: 'statuses', label: '📋 الإذونات والحالات اليومية' },
+  { key: 'ranking', label: '🏆 ترتيب وتقييم العمال' }
+);
+
+function _routeCanvasReportOnce(sectionKey, fn) {
+  return async function (...args) {
+    const orig = canvasReport;
+    canvasReport = (title, headers, rows, filename) => canvasReportToSection(title, headers, rows, filename, sectionKey);
+    try { return await fn.apply(this, args); }
+    finally { canvasReport = orig; }
+  };
+}
+
+const _oldPrintLeavesReport_section = printLeavesReport;
+printLeavesReport = _routeCanvasReportOnce('leaves', _oldPrintLeavesReport_section);
+
+const _oldPrintShiftChangesReport_section = printShiftChangesReport;
+printShiftChangesReport = _routeCanvasReportOnce('shiftChanges', _oldPrintShiftChangesReport_section);
+
+const _oldPrintAllShiftChangesReport_section = printAllShiftChangesReport;
+printAllShiftChangesReport = _routeCanvasReportOnce('shiftChanges', _oldPrintAllShiftChangesReport_section);
+
+const _oldPrintWarehouseReport_section = printWarehouseReport;
+printWarehouseReport = _routeCanvasReportOnce('warehouse', _oldPrintWarehouseReport_section);
+
+const _oldPrintStatusReport_section = printStatusReport;
+printStatusReport = _routeCanvasReportOnce('statuses', _oldPrintStatusReport_section);
+
+const _oldPrintRankingReport_section = printRankingReport;
+printRankingReport = _routeCanvasReportOnce('ranking', _oldPrintRankingReport_section);
 
 /* Start only after every V2 override has been installed. */
 (async function initApp(){
