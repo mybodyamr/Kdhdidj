@@ -3548,6 +3548,325 @@ renderApp = function () {
   _oldRenderApp_pallets();
 };
 
+/* ================================================================================
+   🤖 توسعة: ربط كل بوت Telegram بقسم/أقسام معيّنة (البلتات / الشحن وتفريغ / الموسمي)
+   بدون أي تعديل في آلية البوت النشط الأصلية (لسه شغالة زي ما هي للتقارير القديمة).
+   ================================================================================ */
+const TELEGRAM_SECTIONS = [
+  { key: 'pallets', label: '🪵 إدارة البلتات' },
+  { key: 'loadUnload', label: '🚛 الشحن وتفريغ' },
+  { key: 'seasonal', label: '📋 الموسمي / التوزيع' }
+];
+
+const _oldEnsureTelegramBots_sections = ensureTelegramBots;
+ensureTelegramBots = function () {
+  _oldEnsureTelegramBots_sections();
+  (state.telegram.bots || []).forEach(b => { if (!Array.isArray(b.sections)) b.sections = []; });
+};
+ensureTelegramBots();
+
+function sectionBots(key) { ensureTelegramBots(); return (state.telegram.bots || []).filter(b => Array.isArray(b.sections) && b.sections.includes(key)); }
+
+function toggleBotSection(id, key, checked) {
+  if (!isAdmin()) return;
+  ensureTelegramBots();
+  const b = state.telegram.bots.find(x => x.id === id); if (!b) return;
+  b.sections = Array.isArray(b.sections) ? b.sections : [];
+  if (checked) { if (!b.sections.includes(key)) b.sections.push(key); }
+  else { b.sections = b.sections.filter(s => s !== key); }
+  queueSave();
+  toast('🟢 تم تحديث ربط البوت بالأقسام');
+}
+
+async function sendTelegramPhotoTo(bot, dataUrl, caption) {
+  try {
+    if (!bot?.botToken || !bot?.chatId) return false;
+    const blob = await (await fetch(dataUrl)).blob();
+    const fd = new FormData();
+    fd.append('chat_id', bot.chatId);
+    if (caption) fd.append('caption', String(caption).slice(0, 1024));
+    fd.append('photo', blob, 'report.png');
+    const res = await fetch(`https://api.telegram.org/bot${bot.botToken}/sendPhoto`, { method: 'POST', body: fd });
+    return res.ok;
+  } catch (e) { return false; }
+}
+
+/* نفس سلوك مشاركة/تنزيل التقرير الأصلي، لكن الإرسال لـ Telegram هنا يقتصر على بوتات القسم المطلوب فقط. */
+async function shareOrDownloadToSection(dataUrl, filename, caption, sectionKey) {
+  const bots = sectionBots(sectionKey);
+  let sentOk = false;
+  for (const b of bots) { const ok = await sendTelegramPhotoTo(b, dataUrl, caption); if (ok) sentOk = true; }
+  const doneMsg = sentOk ? '🖨️ تم إنشاء التقرير وإرساله لبوت Telegram 🟢' : (bots.length ? '🖨️ تم إنشاء التقرير (تعذر إرساله للبوت)' : '🖨️ تم إنشاء التقرير');
+  try {
+    const blob = await (await fetch(dataUrl)).blob();
+    const file = new File([blob], (filename || 'report') + '.png', { type: 'image/png' });
+    if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+      try { await navigator.share({ title: filename || 'تقرير', files: [file] }); toast(doneMsg); return; } catch (e) { }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = (filename || 'report') + '.png'; a.target = '_blank'; a.rel = 'noopener'; a.style.display = 'none';
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 3000);
+    toast(doneMsg);
+  } catch (e) {
+    try { window.open(dataUrl, '_blank', 'noopener'); toast('🖨️ تم فتح التقرير كصورة'); }
+    catch (_) { toast('تعذر إنشاء التقرير'); }
+  }
+}
+
+/* يبني نفس صورة التقرير المستخدمة في canvasReport، لكن يوجّه الإرسال لبوتات قسم معيّن بدل البوت النشط العام. */
+async function canvasReportToSection(title, headers, rows, filename, sectionKey) {
+  let captured = null;
+  const originalShare = shareOrDownload;
+  shareOrDownload = async (dataUrl) => { captured = dataUrl; };
+  try { await canvasReport(title, headers, rows, filename); }
+  finally { shareOrDownload = originalShare; }
+  if (captured) { await shareOrDownloadToSection(captured, filename, title, sectionKey); }
+}
+
+/* بطاقة إضافية في شاشة الإعدادات لربط كل بوت بالأقسام (بدون تعديل بطاقات البوتات الأصلية) */
+const _oldRenderSettingsScreen_sections = renderSettingsScreen;
+renderSettingsScreen = function () {
+  const base = _oldRenderSettingsScreen_sections();
+  if (!isAdmin()) return base;
+  ensureTelegramBots();
+  const bots = state.telegram.bots || [];
+  const sectionsCard = `<div class="card">
+    <div style="font-weight:800;margin-bottom:6px;">🔀 ربط البوتات بالأقسام</div>
+    <div class="muted" style="margin-bottom:10px;">حدد أي الأقسام يستقبل كل بوت تقاريرها تلقائيًا (منفصل تمامًا عن "البوت النشط" بتاع التقارير اليومية). لو قسم مفيهوش أي بوت متأشّر عليه، مش هيتبعتله أي تقرير تلقائي.</div>
+    ${bots.length ? bots.map(b => `<div class="card" style="margin:8px 0;padding:10px;">
+        <b>${escapeHtml(b.name || 'بوت Telegram')}</b>
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
+          ${TELEGRAM_SECTIONS.map(s => `<label class="check-row"><input type="checkbox" ${b.sections && b.sections.includes(s.key) ? 'checked' : ''} onchange="toggleBotSection('${b.id}','${s.key}',this.checked)"><span>${s.label}</span></label>`).join('')}
+        </div>
+      </div>`).join('') : '<div class="muted">أضف بوت أولًا من الأعلى.</div>'}
+  </div>`;
+  return base + sectionsCard;
+};
+
+/* ================================================================================
+   🚛 إضافة زر طباعة/تصدير لسجل "الشحن وتفريغ" (مربوط بقسم loadUnload)
+   ================================================================================ */
+function printLoadUnloadReport() {
+  const rows = (state.loadUnloadLog || []).slice()
+    .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+    .slice(0, 150)
+    .map(l => [loadUnloadTypeLabel(l.type), l.containerName || '—', l.tons ? String(l.tons) : '—', l.notes || '—', l.by || '—', l.at || '']);
+  if (!rows.length) { toast('لا توجد حركات تحميل/تفريغ للتقرير'); return; }
+  canvasReportToSection('🚛 تقرير الشحن وتفريغ', ['النوع', 'الحاوية', 'الطن', 'ملاحظات', 'بواسطة', 'التاريخ'], rows, 'تقرير-الشحن-والتفريغ', 'loadUnload');
+}
+function exportLoadUnloadExcel() {
+  const rows = (state.loadUnloadLog || []).slice()
+    .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+    .map(l => [loadUnloadTypeLabel(l.type), l.containerName || '—', l.tons || '—', l.notes || '—', l.by || '—', l.at || '']);
+  if (!rows.length) { toast('لا توجد حركات تحميل/تفريغ للتصدير'); return; }
+  exportRowsToExcel('الشحن والتفريغ', ['النوع', 'الحاوية', 'الطن', 'ملاحظات', 'بواسطة', 'التاريخ'], rows, `سجل-الشحن-والتفريغ-${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+const _oldRenderLoadUnloadScreen_report = renderLoadUnloadScreen;
+renderLoadUnloadScreen = function () {
+  const base = _oldRenderLoadUnloadScreen_report();
+  if (!(state.loadUnloadLog || []).length) return base;
+  const btnsHtml = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 0;"><button class="btn btn-secondary btn-sm" onclick="printLoadUnloadReport()">🖨️ تقرير</button><button class="btn btn-secondary btn-sm" onclick="exportLoadUnloadExcel()">📥 Excel</button></div>`;
+  return base.replace(/(<h3[^>]*>📋 سجل التحميل والتفريغ[^<]*<\/h3>)/, `$1${btnsHtml}`);
+};
+
+/* ================================================================================
+   📋 توسعة "التوزيع الموسمي": تعارض مع توزيع الأقسام + ساعات إضافية + سجل يومي (سجل الموسمي)
+   ================================================================================ */
+const _oldEnsureV2State_seasonal = ensureV2State;
+ensureV2State = function () { _oldEnsureV2State_seasonal(); state.seasonalLog = Array.isArray(state.seasonalLog) ? state.seasonalLog : []; };
+ensureV2State();
+if (!GROWING_COLLECTIONS.includes('seasonalLog')) { GROWING_COLLECTIONS.push('seasonalLog'); _syncCache.seasonalLog = {}; }
+const _oldGetDefaultState_seasonal = getDefaultState;
+getDefaultState = function () { const s = _oldGetDefaultState_seasonal(); s.seasonalLog = []; return s; };
+
+/* توزيع الأقسام: العامل المتوزع في الموسمي (سيور/رصيف) يُستبعد تمامًا من هذه الشاشة */
+renderDistributionScreen = function () {
+  const shiftId = distributionShift();
+  const shiftM = state.shifts.find(s => s.id === 'shift_m') || state.shifts[0];
+  const shiftE = state.shifts.find(s => s.id === 'shift_e') || state.shifts[1];
+  const shift = shiftId === 'shift_e' ? shiftE : shiftM;
+
+  const eligible = state.workers.filter(w => w.active && w.present !== false && !w.seasonalCategory && (w.shiftId === shiftId || !w.shiftId));
+  const unassigned = eligible.filter(w => !w.deptKey);
+
+  const absentActive = state.workers.filter(w => w.active && w.present === false && (w.shiftId === shiftId));
+
+  return `<div class="px" style="padding-top:12px">
+    <h3 style="margin:0 0 12px">🧩 توزيع الأقسام</h3>
+
+    <div class="card">
+      <b>👷 العمال المتواجدون في الشيفت</b>
+      <div class="grid2" style="margin-top:10px">
+        <button class="btn ${shiftId === 'shift_m' ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="setDistributionShift('shift_m')">☀️ ${escapeHtml(shiftM?.name || 'الصباحي')}</button>
+        <button class="btn ${shiftId === 'shift_e' ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="setDistributionShift('shift_e')">🌙 ${escapeHtml(shiftE?.name || 'المسائي')}</button>
+      </div>
+
+      <div class="muted" style="margin-top:12px">غير موزعين (${unassigned.length})</div>
+      <div id="unassignedWorkers" style="margin-top:8px">
+        ${unassigned.length ? unassigned.map(w => `
+          <div class="card" style="margin-bottom:8px;padding:10px">
+            <div class="row"><div><b>${escapeHtml(w.name)}</b><div class="muted">${escapeHtml(w.code)}</div></div>
+              <button class="btn btn-secondary btn-sm" onclick="togglePresence('${w.id}')">🔴 غياب</button>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+              ${DEPARTMENTS.map(d => `<button class="btn btn-secondary btn-sm" style="flex:1 1 45%;font-size:11.5px" onclick="assignWorkerToDept('${w.id}','${d.key}')">${d.ar}</button>`).join('')}
+            </div>
+          </div>`).join('') : '<div class="muted">لا يوجد عمال غير موزعين حاليًا في هذا الشفت.</div>'}
+      </div>
+      ${absentActive.length ? `<div class="muted" style="margin-top:14px">غائبون حاليًا (${absentActive.length})</div>${absentActive.map(w => `<div class="row" style="padding:8px 0;border-bottom:1px solid var(--border)"><span><b>${escapeHtml(w.name)}</b> <span class="muted">${escapeHtml(w.code)}</span></span><button class="btn btn-primary btn-sm" onclick="togglePresence('${w.id}')">🟢 حاضر</button></div>`).join('')}` : ''}
+    </div>
+
+    ${DEPARTMENTS.map(d => {
+    const list = state.workers.filter(w => w.active && w.present !== false && !w.seasonalCategory && w.shiftId === shiftId && w.deptKey === d.key);
+    return `<div class="card">
+        <div class="row"><b>${d.ar}</b><span class="badge info">${list.length}</span></div>
+        <div style="margin-top:8px">
+          ${list.length ? list.map(w => `
+            <div class="row" style="padding:8px 0;border-bottom:1px solid var(--border)">
+              <span><b>${escapeHtml(w.name)}</b> <span class="muted">${escapeHtml(w.code)}</span></span>
+              <div style="display:flex;gap:6px;align-items:center">
+                <select class="input" style="width:auto;padding:6px 8px;font-size:12px;margin-top:0" onchange="assignWorkerToDept('${w.id}', this.value)">
+                  ${DEPARTMENTS.map(d2 => `<option value="${d2.key}" ${d2.key === d.key ? 'selected' : ''}>${d2.ar}</option>`).join('')}
+                </select>
+                <button class="btn btn-secondary btn-sm" onclick="unassignWorkerFromDept('${w.id}')">↩️ إلغاء</button>
+              </div>
+            </div>`).join('') : '<div class="muted">لا يوجد عمال في هذا القسم بعد.</div>'}
+        </div>
+      </div>`;
+  }).join('')}
+  </div>`;
+};
+
+/* شاشة الموسمي: إضافة حقل "ساعات إضافية" لكل عامل + ملاحظة التعارض مع توزيع الأقسام + زرار إجمالي الساعات */
+renderSeasonalScreen = function () {
+  const active = state.workers.filter(w => w.active);
+  const today = new Date().toISOString().slice(0, 10);
+  return `<div class="px" style="padding-top:12px">
+    <div class="row"><h3 style="margin:0">📋 التوزيع الموسمي</h3><div style="display:flex;gap:6px;flex-wrap:wrap">${active.length ? '<button class="btn btn-secondary btn-sm" onclick="printSeasonalReport()">🖨️ تقرير</button><button class="btn btn-secondary btn-sm" onclick="exportSeasonalExcel()">📥 Excel</button>' : ''}<button class="btn btn-secondary btn-sm" onclick="openSeasonalMonthlyHours()">📊 إجمالي الساعات</button></div></div>
+    <div class="muted" style="margin-top:6px;font-size:12px;">العامل اللي بتوزّعه هنا (سيور/رصيف) بيتشال أوتوماتيك من "توزيع الأقسام".</div>
+    <input class="input" id="seasonalSearch" placeholder="🔍 بحث بالاسم أو الكود" oninput="filterSeasonalWorkers()" style="margin-top:10px">
+    <div id="seasonalWorkers" style="margin-top:10px">
+      ${active.map(w => {
+    const cur = w.seasonalCategory || state.seasonalAssignments.find(a => a.workerId === w.id)?.category || '';
+    const todayEntry = (state.seasonalLog || []).find(l => l.workerId === w.id && l.date === today);
+    const hoursVal = todayEntry ? todayEntry.extraHours : '';
+    return `<div class="card seasonal-worker" data-name="${escapeHtml(w.name)}" data-code="${escapeHtml(w.code)}">
+          <div class="row"><div><b>${escapeHtml(w.name)}</b><div class="muted">${escapeHtml(w.code)} • ${escapeHtml(shiftById(w.shiftId)?.name || '')}</div></div></div>
+          <select class="input seasonalSelect" data-worker="${escapeHtml(w.id)}" style="margin-top:8px">
+            <option value="" ${!cur ? 'selected' : ''}>غير موزع</option>
+            <option value="conveyor" ${cur === 'conveyor' ? 'selected' : ''}>عمال معدات السيور</option>
+            <option value="dock" ${cur === 'dock' ? 'selected' : ''}>عمال معدات الرصيف</option>
+          </select>
+          <input class="input seasonalExtraHours" type="number" min="0" step="0.5" data-worker="${escapeHtml(w.id)}" placeholder="⏱️ ساعات إضافية اليوم" value="${hoursVal}" style="margin-top:8px">
+        </div>`;
+  }).join('')}
+    </div>
+    <button class="btn btn-primary" style="margin-top:12px" onclick="saveSeasonalAll()">💾 حفظ التوزيع</button>
+  </div>`;
+};
+
+function saveSeasonalAll() {
+  const selects = [...document.querySelectorAll('.seasonalSelect')];
+  const at = new Date().toLocaleString('ar-EG');
+  const today = new Date().toISOString().slice(0, 10);
+  let changed = 0;
+
+  selects.forEach(sel => {
+    const w = workerById(sel.dataset.worker); if (!w) return;
+    const val = sel.value;
+    if ((w.seasonalCategory || '') !== val) {
+      w.seasonalCategory = val;
+      const idx = state.seasonalAssignments.findIndex(a => a.workerId === w.id);
+      if (val) {
+        const rec = { workerId: w.id, name: w.name, code: w.code, category: val, by: currentUser().name, at };
+        if (idx >= 0) state.seasonalAssignments[idx] = rec; else state.seasonalAssignments.unshift(rec);
+      } else {
+        if (idx >= 0) state.seasonalAssignments.splice(idx, 1);
+      }
+      changed++;
+    }
+    if (val && w.deptKey) { w.deptKey = null; } // تعارض مع توزيع الأقسام
+  });
+
+  const hoursInputs = [...document.querySelectorAll('.seasonalExtraHours')];
+  let loggedCount = 0;
+  hoursInputs.forEach(inp => {
+    const w = workerById(inp.dataset.worker); if (!w) return;
+    const hours = Math.max(0, Number(inp.value) || 0);
+    const cat = w.seasonalCategory || '';
+    const idx = (state.seasonalLog || []).findIndex(l => l.workerId === w.id && l.date === today);
+    if (!cat && hours <= 0) {
+      if (idx >= 0) state.seasonalLog.splice(idx, 1); // مفيش توزيع ومفيش ساعات: يتشال من سجل اليوم لو كان موجود
+      return;
+    }
+    const rec = {
+      id: idx >= 0 ? state.seasonalLog[idx].id : ('SL-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6)),
+      workerId: w.id, name: w.name, code: w.code,
+      category: cat, extraHours: hours, date: today,
+      by: currentUser().name, at: new Date().toISOString()
+    };
+    if (idx >= 0) state.seasonalLog[idx] = rec; else state.seasonalLog.unshift(rec);
+    loggedCount++;
+  });
+
+  if (!changed && !loggedCount) { toast('لا يوجد تغييرات لحفظها'); return; }
+  queueSave();
+  toast(`تم حفظ التوزيع${loggedCount ? ` وتحديث سجل الموسمي (${loggedCount})` : ''}`);
+  renderApp();
+}
+
+function openSeasonalMonthlyHours() { openModal(renderSeasonalMonthlyHoursModal(new Date().toISOString().slice(0, 7))); }
+function reopenSeasonalMonthlyHours(month) { openModal(renderSeasonalMonthlyHoursModal(month)); }
+function renderSeasonalMonthlyHoursModal(month) {
+  const rows = (state.seasonalLog || []).filter(l => String(l.date || '').slice(0, 7) === month);
+  const totals = {};
+  rows.forEach(l => { const k = l.workerId; totals[k] = totals[k] || { name: l.name, code: l.code, hours: 0, days: 0 }; totals[k].hours += Number(l.extraHours) || 0; totals[k].days++; });
+  const list = Object.values(totals).sort((a, b) => b.hours - a.hours);
+  return `<div class="modal-header"><h3 style="margin:0">📊 إجمالي ساعات الموسمي</h3><button class="icon-btn" onclick="closeModal()">✕</button></div>
+    <input class="input" type="month" value="${month}" onchange="reopenSeasonalMonthlyHours(this.value)">
+    <div style="margin-top:10px">
+      ${list.length ? list.map(t => `<div class="row" style="padding:8px 0;border-bottom:1px solid var(--border)"><span><b>${escapeHtml(t.name)}</b> <span class="muted">${escapeHtml(t.code)}</span></span><b>${t.hours} ساعة${t.days > 1 ? ` (${t.days} يوم)` : ''}</b></div>`).join('') : '<div class="muted">لا يوجد ساعات إضافية مسجلة في هذا الشهر.</div>'}
+    </div>`;
+}
+
+/* تقرير الموسمي: يتبعت لبوتات قسم "الموسمي / التوزيع" فقط */
+printSeasonalReport = function () {
+  const workers = state.workers.filter(w => w.active);
+  const rows = workers.map(w => {
+    const cat = w.seasonalCategory || state.seasonalAssignments.find(a => a.workerId === w.id)?.category || '';
+    if (!cat) return null;
+    return [w.name, w.code, seasonalLabel(cat), shiftById(w.shiftId)?.name || '—'];
+  }).filter(Boolean);
+  if (!rows.length) { toast('لا توجد بيانات عمال موزعين للتقرير'); return; }
+  canvasReportToSection('📋 تقرير توزيع العمال الموسمي', ['العامل', 'الكود', 'التوزيع', 'الشفت'], rows, 'تقرير-الموسمي', 'seasonal');
+};
+
+/* تقرير البلتات: يتبعت لبوتات قسم "إدارة البلتات" فقط (بدل البوت النشط العام) */
+printPalletsReport = function () {
+  const rows = state.pallets.slice()
+    .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+    .slice(0, 150)
+    .map(p => ['#' + p.opNumber, plainLabel(palletMovementInfo(p.movementType).label), p.partyName || '—', p.location || '—', String(p.largeCount || 0), String(p.smallCount || 0), String(p.total || 0), p.createdBy || '—', new Date(p.createdAt).toLocaleDateString('ar-EG')]);
+  if (!rows.length) { toast('لا توجد عمليات بلتات للتقرير'); return; }
+  canvasReportToSection('🪵 تقرير عمليات البلتات', ['رقم العملية', 'النوع', 'الاسم', 'المكان', 'كبيرة', 'صغيرة', 'الإجمالي', 'أنشأها', 'التاريخ'], rows, 'تقرير-البلتات', 'pallets');
+};
+
+/* شيت إضافي لسجل الموسمي في ملف التصدير الشامل */
+const _oldBuildExportWorkbook_seasonalLog = buildExportWorkbook;
+buildExportWorkbook = function () {
+  const wb = _oldBuildExportWorkbook_seasonalLog();
+  const rows = (state.seasonalLog || []).length ? state.seasonalLog.map(l => ({
+    id: l.id, workerId: l.workerId, name: l.name || '', code: l.code || '', category: l.category || '',
+    extraHours: l.extraHours || 0, date: l.date || '', by: l.by || '', at: l.at || ''
+  })) : [{}];
+  const ws = XLSX.utils.json_to_sheet(rows);
+  styleSheet(ws, rows);
+  XLSX.utils.book_append_sheet(wb, ws, 'SeasonalLog');
+  return wb;
+};
+
 /* Start only after every V2 override has been installed. */
 (async function initApp(){
   await loadState();
