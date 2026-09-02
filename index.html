@@ -3929,6 +3929,100 @@ printStatusReport = _routeCanvasReportOnce('statuses', _oldPrintStatusReport_sec
 const _oldPrintRankingReport_section = printRankingReport;
 printRankingReport = _routeCanvasReportOnce('ranking', _oldPrintRankingReport_section);
 
+/* ================================================================================
+   🔄 توسعة "تغيير الشفتات": زرار حذف كل "آخر التغييرات" أو تحديد عمليات معينة وحذفها
+   (حذف للأدمن بس، ومع رسالة تأكيد قبل أي حذف)
+   ================================================================================ */
+let _shiftChangeHistorySelected = {};
+function toggleShiftChangeHistorySelect(id, checked) {
+  if (checked) _shiftChangeHistorySelected[id] = true; else delete _shiftChangeHistorySelected[id];
+  const btn = document.getElementById('deleteSelectedShiftChangesBtn');
+  const n = Object.keys(_shiftChangeHistorySelected).length;
+  if (btn) btn.textContent = `🗑️ حذف المحدد${n ? ` (${n})` : ''}`;
+}
+function deleteAllShiftChangesHistory() {
+  if (!isAdmin()) { toast('حذف السجل يقتصر على المشرف الرئيسي'); return; }
+  if (!state.shiftChanges.length) { toast('لا يوجد سجل لحذفه'); return; }
+  if (!confirm('هل أنت متأكد من حذف كل سجل "آخر التغييرات"؟ لا يمكن التراجع.')) return;
+  state.shiftChanges = [];
+  _shiftChangeHistorySelected = {};
+  queueSave();
+  toast('🗑️ تم حذف كل السجل');
+  renderApp();
+}
+function deleteSelectedShiftChangesHistory() {
+  if (!isAdmin()) { toast('حذف السجل يقتصر على المشرف الرئيسي'); return; }
+  const ids = Object.keys(_shiftChangeHistorySelected);
+  if (!ids.length) { toast('حدد عملية واحدة على الأقل'); return; }
+  if (!confirm(`هل أنت متأكد من حذف ${ids.length} عملية من السجل؟`)) return;
+  state.shiftChanges = state.shiftChanges.filter(x => !ids.includes(x.id));
+  _shiftChangeHistorySelected = {};
+  queueSave();
+  toast('🗑️ تم حذف العمليات المحددة');
+  renderApp();
+}
+
+renderShiftChangesScreen = function () {
+  const active = state.workers.filter(w => w.active);
+  active.forEach(w => { if (!(w.id in _shiftChangeSelections)) _shiftChangeSelections[w.id] = w.shiftId || null; });
+  const shiftM = state.shifts.find(s => s.id === 'shift_m') || state.shifts[0];
+  const shiftE = state.shifts.find(s => s.id === 'shift_e') || state.shifts[1];
+  const changedCount = active.filter(w => _shiftChangeSelections[w.id] && _shiftChangeSelections[w.id] !== w.shiftId).length;
+  const recent = state.shiftChanges.slice(0, 20);
+  const selectedCount = Object.keys(_shiftChangeHistorySelected).length;
+  return `<div class="px" style="padding-top:12px">
+    <div class="row"><h3 style="margin:0">🔄 تغيير الشفتات</h3><div style="display:flex;gap:6px;flex-wrap:wrap">${state.shiftChanges.length ? '<button class="btn btn-secondary btn-sm" onclick="printShiftChangesReport()">🖨️ تقرير</button><button class="btn btn-secondary btn-sm" onclick="exportShiftChangesExcel()">📥 Excel</button><button class="btn btn-secondary btn-sm" onclick="printAllShiftChangesReport()">🖨️ طباعة الكل</button><button class="btn btn-secondary btn-sm" onclick="exportAllShiftChangesExcel()">📥 Excel الكل</button>' : ''}</div></div>
+    <div class="muted" style="margin-top:6px">اختر لكل عامل الشفت الجديد، ثم اضغط زر التنفيذ في الأسفل لتطبيق كل التغييرات دفعة واحدة.</div>
+    <input class="input" id="shiftChangeSearch" placeholder="🔍 بحث بالاسم أو الكود" oninput="filterShiftChangeWorkers()" style="margin-top:10px">
+    <div id="shiftChangeWorkers" style="margin-top:10px;max-height:420px;overflow-y:auto">
+      ${active.map(w => {
+    const sel = _shiftChangeSelections[w.id];
+    return `<div class="card shift-change-worker" style="margin-bottom:8px" data-name="${escapeHtml(w.name)}" data-code="${escapeHtml(w.code)}">
+          <div><b>${escapeHtml(w.name)}</b><div class="muted">${escapeHtml(w.code)}${sel !== w.shiftId ? ` • <span style="color:var(--accent);font-weight:700">سيتم النقل</span>` : ''}</div></div>
+          <div class="grid2" style="margin-top:8px">
+            <button class="btn ${sel === shiftM?.id ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="setWorkerShiftSelection('${w.id}','${shiftM?.id}')">☀️ صباحي</button>
+            <button class="btn ${sel === shiftE?.id ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="setWorkerShiftSelection('${w.id}','${shiftE?.id}')">🌙 مسائي</button>
+          </div>
+        </div>`;
+  }).join('')}
+    </div>
+    <button class="btn btn-primary" style="margin-top:12px" onclick="saveShiftChanges()">✅ تنفيذ تغيير الشفت${changedCount ? ` (${changedCount})` : ''}</button>
+    <div class="row" style="margin-top:16px"><h4 style="margin:0">آخر التغييرات</h4>
+      ${isAdmin() && recent.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-danger btn-sm" onclick="deleteAllShiftChangesHistory()">🗑️ حذف الكل</button><button class="btn btn-secondary btn-sm" id="deleteSelectedShiftChangesBtn" onclick="deleteSelectedShiftChangesHistory()">🗑️ حذف المحدد${selectedCount ? ` (${selectedCount})` : ''}</button></div>` : ''}
+    </div>
+    ${recent.length ? recent.map(x => `<div class="card"><div class="row"><label class="check-row" style="gap:8px">${isAdmin() ? `<input type="checkbox" ${_shiftChangeHistorySelected[x.id] ? 'checked' : ''} onchange="toggleShiftChangeHistorySelect('${x.id}', this.checked)">` : ''}<b>${escapeHtml(x.name)}</b></label><span class="muted">${escapeHtml(x.code)}</span></div><div class="muted" style="margin-top:4px">${escapeHtml(shiftById(x.oldShift)?.name || '—')} ← ${escapeHtml(shiftById(x.newShift)?.name || '—')} • ${escapeHtml(x.by || '')} • ${escapeHtml(x.at || '')}</div></div>`).join('') : '<div class="card">لا توجد تغييرات مسجلة بعد.</div>'}
+  </div>`;
+};
+
+/* ================================================================================
+   🛡️ حماية إضافية: منع أي تعديل/حفظ قبل ما البيانات الحقيقية توصل من Firestore
+   ------------------------------------------------------------------------------
+   المشكلة اللي كانت بتحصل: لو localStorage اتمسح (Clear site data كامل بدل مسح
+   كاش الـ Service Worker بس)، التطبيق بيفتح مؤقتًا على قائمة العمال التجريبية
+   الافتراضية (INITIAL_WORKERS، 44 عامل) المكتوبة جوه الكود، لحد ما بيانات
+   Firestore الحقيقية توصل بعد كسور من الثانية. لو حصل أي إضافة/تعديل في
+   الفاصل الزمني ده قبل وصول البيانات الحقيقية، التعديل ده ممكن يضيع أو (في
+   حالات نادرة) يستبدل بيانات Firestore الحقيقية بالبيانات التجريبية + التعديل.
+   الحل: إظهار شاشة "جاري التحميل" واضحة ومنع أي تفاعل لحد ما نتأكد إن
+   البيانات الحقيقية (مش التجريبية) وصلت فعلاً.
+   ================================================================================ */
+const _oldRenderApp_syncGate = renderApp;
+renderApp = function () {
+  const u = currentUser();
+  if (u && !_fbReady) {
+    const header = document.getElementById('appHeader'); if (header) header.style.display = 'none';
+    const nav = document.getElementById('bottomNav'); if (nav) nav.style.display = 'none';
+    const app = document.getElementById('app');
+    if (app) app.innerHTML = `<div class="px" style="padding-top:70px;text-align:center">
+      <div style="font-size:44px">⏳</div>
+      <h3 style="margin-top:12px">جاري تحميل أحدث نسخة من البيانات...</h3>
+      <div class="muted" style="margin-top:6px">من فضلك انتظر لحظة قبل إضافة أو تعديل أي بيانات، حتى لا يضيع أي تعديل جديد بالخطأ.</div>
+    </div>`;
+    return;
+  }
+  _oldRenderApp_syncGate();
+};
+
 /* Start only after every V2 override has been installed. */
 (async function initApp(){
   await loadState();
