@@ -3585,22 +3585,27 @@ function toggleBotSection(id, key, checked) {
 async function sendTelegramPhotoTo(bot, dataUrl, caption) {
   try {
     if (!bot?.botToken || !bot?.chatId) return false;
-    const blob = await (await fetch(dataUrl)).blob();
+    const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+    const blob = await withTimeout((async () => (await fetch(dataUrl)).blob())(), 8000);
     const fd = new FormData();
     fd.append('chat_id', bot.chatId);
     if (caption) fd.append('caption', String(caption).slice(0, 1024));
     fd.append('photo', blob, 'report.png');
-    const res = await fetch(`https://api.telegram.org/bot${bot.botToken}/sendPhoto`, { method: 'POST', body: fd });
+    const res = await withTimeout(fetch(`https://api.telegram.org/bot${bot.botToken}/sendPhoto`, { method: 'POST', body: fd }), 10000);
     return res.ok;
   } catch (e) { return false; }
 }
 
-/* نفس سلوك مشاركة/تنزيل التقرير الأصلي، لكن الإرسال لـ Telegram هنا يقتصر على بوتات القسم المطلوب فقط. */
+/* نفس سلوك مشاركة/تنزيل التقرير الأصلي، لكن الإرسال لـ Telegram هنا يقتصر على بوتات القسم المطلوب فقط.
+   مهم: مهما حصل مع إرسال البوت (بطء/فشل/تايم آوت)، عرض/تنزيل الصورة لازم يحصل دايمًا. */
 async function shareOrDownloadToSection(dataUrl, filename, caption, sectionKey) {
-  const bots = sectionBots(sectionKey);
-  let sentOk = false;
-  for (const b of bots) { const ok = await sendTelegramPhotoTo(b, dataUrl, caption); if (ok) sentOk = true; }
-  const doneMsg = sentOk ? '🖨️ تم إنشاء التقرير وإرساله لبوت Telegram 🟢' : (bots.length ? '🖨️ تم إنشاء التقرير (تعذر إرساله للبوت)' : '🖨️ تم إنشاء التقرير');
+  let sentOk = false, hadBots = false;
+  try {
+    const bots = sectionBots(sectionKey);
+    hadBots = bots.length > 0;
+    for (const b of bots) { const ok = await sendTelegramPhotoTo(b, dataUrl, caption); if (ok) sentOk = true; }
+  } catch (e) { /* إرسال البوت فشل، بس ده مش لازم يمنع عرض التقرير */ }
+  const doneMsg = sentOk ? '🖨️ تم إنشاء التقرير وإرساله لبوت Telegram 🟢' : (hadBots ? '🖨️ تم إنشاء التقرير (تعذر إرساله للبوت)' : '🖨️ تم إنشاء التقرير');
   try {
     const blob = await (await fetch(dataUrl)).blob();
     const file = new File([blob], (filename || 'report') + '.png', { type: 'image/png' });
@@ -3615,7 +3620,7 @@ async function shareOrDownloadToSection(dataUrl, filename, caption, sectionKey) 
     toast(doneMsg);
   } catch (e) {
     try { window.open(dataUrl, '_blank', 'noopener'); toast('🖨️ تم فتح التقرير كصورة'); }
-    catch (_) { toast('تعذر إنشاء التقرير'); }
+    catch (_) { toast('تعذر إنشاء التقرير، جرّب تاني'); }
   }
 }
 
@@ -3628,9 +3633,19 @@ async function canvasReportToSection(title, headers, rows, filename, sectionKey)
   let captured = null;
   const originalShare = shareOrDownload;
   shareOrDownload = async (dataUrl) => { captured = dataUrl; };
-  try { await _realCanvasReport(title, headers, rows, filename); }
-  finally { shareOrDownload = originalShare; }
-  if (captured) { await shareOrDownloadToSection(captured, filename, title, sectionKey); }
+  try {
+    await _realCanvasReport(title, headers, rows, filename);
+  } catch (e) {
+    console.error('canvasReportToSection draw error:', e);
+    toast('تعذر إنشاء صورة التقرير');
+    return;
+  } finally { shareOrDownload = originalShare; }
+  if (captured) {
+    try { await shareOrDownloadToSection(captured, filename, title, sectionKey); }
+    catch (e) { console.error('canvasReportToSection send error:', e); toast('تعذر إنشاء صورة التقرير'); }
+  } else {
+    toast('تعذر إنشاء صورة التقرير');
+  }
 }
 
 /* بطاقة إضافية في شاشة الإعدادات لربط كل بوت بالأقسام (بدون تعديل بطاقات البوتات الأصلية) */
@@ -4035,6 +4050,126 @@ renderApp = function () {
     return;
   }
   _oldRenderApp_syncGate();
+};
+
+/* ================================================================================
+   📑 تصدير Excel احترافي بالعربي (تقرير للقراءة/المشاركة فقط، منفصل تمامًا عن
+   تصدير النسخة الاحتياطية الأصلي "Excel الآن" اللي بيتوافق مع الاستيراد).
+   ------------------------------------------------------------------------------
+   ليه منفصل ومش بديل؟ لأن ميزة "استيراد من Excel" الموجودة في نفس الشاشة بتعتمد
+   بشكل مباشر على أسماء الشيتات والأعمدة الإنجليزية بالظبط (id, shiftId,
+   attendanceJSON...) عشان تقدر تقرأها وتحدّث بيها بيانات التطبيق. لو غيّرنا
+   الأسماء دي للعربي في نفس الملف، ميزة الاستيراد كانت هتتعطل تمامًا. فالحل:
+   ملف تاني منفصل، عربي بالكامل ومقروء، من غير ما نكسر الاستيراد القديم.
+   ================================================================================ */
+function readableLeaveType(t) { return t === 'annual' ? 'سنوي' : t === 'sick' ? 'مرضي' : 'بدل رسمي'; }
+function readableTaskStatus(s) { return s === 'resolved' ? 'تم الحل' : s === 'failed' ? 'لم يتم الحل' : 'مطلوب التنفيذ'; }
+function readableDeptName(key) { const d = DEPARTMENTS.find(x => x.key === key); return d ? plainLabel(d.ar) : (key || '—'); }
+function attendanceSummary(attendance) {
+  if (!attendance || typeof attendance !== 'object') return { present: 0, names: '' };
+  const ids = Object.keys(attendance);
+  const presentIds = ids.filter(id => attendance[id] === 'present');
+  return { present: presentIds.length, names: presentIds.map(id => workerById(id)?.name || id).join('، ') };
+}
+function departmentsSummary(departments) {
+  if (!departments || typeof departments !== 'object') return '—';
+  const parts = DEPARTMENTS.map(d => {
+    const ids = departments[d.key] || [];
+    if (!ids.length) return '';
+    return `${plainLabel(d.ar)}: ${ids.map(id => workerById(id)?.name || id).join('، ')}`;
+  }).filter(Boolean);
+  return parts.length ? parts.join(' | ') : '—';
+}
+function readableSelectedDays(arr) { return Array.isArray(arr) && arr.length ? arr.map(d => `${d.day || ''} ${d.date || ''}`.trim()).join('، ') : '—'; }
+
+function buildReadableExportWorkbook() {
+  const wb = XLSX.utils.book_new();
+  const addSheet = (name, rows, headerOrder) => {
+    const safeRows = rows && rows.length ? rows : [Object.fromEntries((headerOrder || ['لا توجد بيانات']).map(h => [h, '']))];
+    const ws = XLSX.utils.json_to_sheet(safeRows, headerOrder ? { header: headerOrder } : undefined);
+    styleSheet(ws, safeRows);
+    XLSX.utils.book_append_sheet(wb, ws, name);
+  };
+
+  addSheet('العمال', state.workers.map(w => ({
+    'الكود': w.code, 'الاسم': w.name, 'الشفت': shiftById(w.shiftId)?.name || '—', 'القسم': w.deptKey ? readableDeptName(w.deptKey) : '—',
+    'الوظيفة': (JOB_TITLES.find(j => j.key === w.jobTitle) || {}).ar || w.jobTitle || '—',
+    'نشط': w.active ? 'نعم' : 'لا', 'حاضر اليوم': w.present ? 'نعم' : 'لا',
+    'رصيد الإجازة السنوية': annualBalance(w), 'تصنيف الموسمي': w.seasonalCategory ? seasonalLabel(w.seasonalCategory) : '—'
+  })));
+
+  addSheet('الشفتات', state.shifts.map(s => ({
+    'الاسم': s.name, 'من الساعة': s.startTime, 'إلى الساعة': s.endTime, 'المسؤول': (state.users.find(u => u.id === s.supervisorId) || {}).name || '—'
+  })));
+
+  addSheet('التقارير اليومية', state.reports.map(r => {
+    const att = attendanceSummary(r.attendance);
+    return {
+      'التاريخ': r.date, 'الشفت': r.shiftName, 'المسؤول': r.supervisor, 'عدد الحاضرين': att.present, 'أسماء الحاضرين': att.names || '—',
+      'توزيع الأقسام': departmentsSummary(r.departments), 'عدد الشاحنات': (r.ops && r.ops.truckCount) || '—',
+      'الحالة العامة': (r.ops && r.ops.status) || '—', 'ملاحظات': (r.ops && r.ops.notes) || '—', 'مشاكل': (r.ops && r.ops.issues) || '—',
+      'أُرسل للبوت': r.telegramSent ? 'نعم' : 'لا'
+    };
+  }));
+
+  addSheet('الإجازات', state.leaves.map(l => ({
+    'الاسم': l.name, 'الكود': l.code, 'نوع الإجازة': readableLeaveType(l.type), 'عدد الأيام': l.days,
+    'تاريخ البداية': l.start, 'تاريخ العودة': l.returnDate || l.end || '—', 'الأيام المحددة': readableSelectedDays(l.selectedDays),
+    'الرصيد قبل': l.balanceBefore ?? '—', 'الرصيد بعد': l.balanceAfter ?? '—', 'بواسطة': l.createdBy,
+    'تاريخ الطلب': l.createdAt ? new Date(l.createdAt).toLocaleString('ar-EG') : '—'
+  })));
+
+  addSheet('تغييرات الشفتات', state.shiftChanges.map(x => ({
+    'الاسم': x.name, 'الكود': x.code, 'من شفت': x.oldShift ? (shiftById(x.oldShift)?.name || x.oldShift) : '—',
+    'إلى شفت': shiftById(x.newShift)?.name || x.newShift || '—', 'بواسطة': x.by || '—', 'التاريخ': x.at || '—'
+  })));
+
+  addSheet('البلتات', state.pallets.map(p => ({
+    'رقم العملية': p.opNumber, 'النوع': p.movementType === 'company' ? 'بلتات شركات' : 'بلتات مخازن خارجية',
+    'الاسم': p.partyName, 'المكان': p.location, 'بلتات كبيرة': p.largeCount, 'بلتات صغيرة': p.smallCount, 'الإجمالي': p.total,
+    'أنشأها': p.createdBy, 'تاريخ الإنشاء': p.createdAt ? new Date(p.createdAt).toLocaleString('ar-EG') : '—',
+    'آخر تعديل بواسطة': p.updatedBy || '—', 'تاريخ التعديل': p.updatedAt ? new Date(p.updatedAt).toLocaleString('ar-EG') : '—'
+  })), ['رقم العملية', 'النوع', 'الاسم', 'المكان', 'بلتات كبيرة', 'بلتات صغيرة', 'الإجمالي', 'أنشأها', 'تاريخ الإنشاء', 'آخر تعديل بواسطة', 'تاريخ التعديل']);
+
+  addSheet('سجل الموسمي وساعات الإضافي', (state.seasonalLog || []).map(l => ({
+    'الاسم': l.name, 'الكود': l.code, 'التصنيف': seasonalLabel(l.category), 'الساعات الإضافية': l.extraHours, 'التاريخ': l.date, 'بواسطة': l.by
+  })), ['الاسم', 'الكود', 'التصنيف', 'الساعات الإضافية', 'التاريخ', 'بواسطة']);
+
+  addSheet('الشحن وتفريغ', (state.loadUnloadLog || []).map(x => ({
+    'النوع': loadUnloadTypeLabel(x.type), 'الحاوية': x.containerName || '—', 'الطن': x.tons || '—', 'ملاحظات': x.notes || '—', 'بواسطة': x.by || '—', 'التاريخ': x.at || '—'
+  })), ['النوع', 'الحاوية', 'الطن', 'ملاحظات', 'بواسطة', 'التاريخ']);
+
+  addSheet('ملاحظات المخزن', state.warehouseTasks.map(t => ({
+    'الملاحظة': t.notes, 'الحالة': readableTaskStatus(t.status), 'الشفت المستهدف': t.targetShiftId ? (shiftById(t.targetShiftId)?.name || t.targetShiftId) : 'كل الشفتات',
+    'بواسطة': t.createdBy, 'تاريخ الإنشاء': t.createdAt ? new Date(t.createdAt).toLocaleString('ar-EG') : '—',
+    'تم الحل بواسطة': t.resolvedBy || '—', 'تاريخ الحل': t.resolvedAt ? new Date(t.resolvedAt).toLocaleString('ar-EG') : '—',
+    'ملاحظات الحل': t.resolutionNotes || '—', 'سبب عدم الحل': t.failureReason || '—'
+  })));
+
+  return wb;
+}
+
+function exportReadableExcel() {
+  if (!excelReady()) return;
+  try {
+    ensureV2State();
+    const wb = buildReadableExportWorkbook();
+    const stamp = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `تقرير-احترافي-${stamp}.xlsx`, { cellStyles: true });
+    toast('🟢 تم إنشاء التقرير الاحترافي بنجاح');
+  } catch (e) { toast('🔴 تعذر إنشاء التقرير' + (e && e.message ? ': ' + e.message : '')); }
+}
+
+/* إضافة زرار التقرير الاحترافي في نفس شاشة تصدير/استيراد Excel، وتوضيح الفرق بين الملفين */
+const _oldRenderExcelScreen_readable = renderExcelScreen;
+renderExcelScreen = function () {
+  const base = _oldRenderExcelScreen_readable();
+  const readableCard = `<div class="card">
+    <b>📑 تقرير Excel احترافي (بالعربي)</b>
+    <p class="muted" style="margin-top:6px">ملف منظم بالكامل بالعربي للقراءة والمشاركة: أسماء أعمدة عربية، بدون بيانات المستخدمين وكلمات المرور، وبدون أكواد JSON غريبة الشكل — كل حاجة نص مقروء واضح. هذا الملف للعرض فقط ولا يصلح لإعادة الاستيراد (استخدم "تصدير Excel الآن" فوق لو محتاج نسخة تدعم الاستيراد).</p>
+    <button class="btn btn-primary" style="margin-top:10px" onclick="exportReadableExcel()">📑 تصدير التقرير الاحترافي</button>
+  </div>`;
+  return base.replace('<div class="card"><p class="muted" style="margin:0">⚠️', readableCard + '<div class="card"><p class="muted" style="margin:0">⚠️');
 };
 
 /* Start only after every V2 override has been installed. */
