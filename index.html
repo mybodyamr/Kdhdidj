@@ -3620,11 +3620,15 @@ async function shareOrDownloadToSection(dataUrl, filename, caption, sectionKey) 
 }
 
 /* يبني نفس صورة التقرير المستخدمة في canvasReport، لكن يوجّه الإرسال لبوتات قسم معيّن بدل البوت النشط العام. */
+/* مرجع ثابت للدالة الأصلية الحقيقية لرسم التقرير — لازم يتاخد دلوقتي وبس، قبل أي
+   تغليف تاني ممكن يستبدل الاسم العام canvasReport مؤقتًا (زي _routeCanvasReportOnce
+   تحت)، وإلا هيحصل استدعاء دائري بلا نهاية لما تقرير زي الإجازات أو ملاحظات المخزن يتفتح. */
+const _realCanvasReport = canvasReport;
 async function canvasReportToSection(title, headers, rows, filename, sectionKey) {
   let captured = null;
   const originalShare = shareOrDownload;
   shareOrDownload = async (dataUrl) => { captured = dataUrl; };
-  try { await canvasReport(title, headers, rows, filename); }
+  try { await _realCanvasReport(title, headers, rows, filename); }
   finally { shareOrDownload = originalShare; }
   if (captured) { await shareOrDownloadToSection(captured, filename, title, sectionKey); }
 }
@@ -3911,8 +3915,18 @@ function _routeCanvasReportOnce(sectionKey, fn) {
   };
 }
 
+/* تقرير الإجازات بيستخدم renderLeaveCalendarReport (بترسم صورة تقويم مخصصة) وبينادي
+   shareOrDownload مباشرة (مش canvasReport)، فالتوجيه لقسمه بيتم بتبديل shareOrDownload
+   نفسها مؤقتًا بدل canvasReport. */
 const _oldPrintLeavesReport_section = printLeavesReport;
-printLeavesReport = _routeCanvasReportOnce('leaves', _oldPrintLeavesReport_section);
+printLeavesReport = async function (...args) {
+  let captured = null;
+  const origShare = shareOrDownload;
+  shareOrDownload = async (dataUrl, filename, caption) => { captured = { dataUrl, filename, caption }; };
+  try { await _oldPrintLeavesReport_section.apply(this, args); }
+  finally { shareOrDownload = origShare; }
+  if (captured) { await shareOrDownloadToSection(captured.dataUrl, captured.filename, captured.caption, 'leaves'); }
+};
 
 const _oldPrintShiftChangesReport_section = printShiftChangesReport;
 printShiftChangesReport = _routeCanvasReportOnce('shiftChanges', _oldPrintShiftChangesReport_section);
